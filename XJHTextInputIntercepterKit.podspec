@@ -17,9 +17,7 @@ Pod::Spec.new do |s|
 #   * Write the description between the DESC delimiters below.
 #   * Finally, don't worry about the indent, CocoaPods strips it!
 
-  s.description      = <<-DESC
-TODO: Add long description of the pod here.
-                       DESC
+  s.description      = 'A short description of XJHTextInputIntercepterKit.@XJHTextInputIntercepterKit'
 
   s.homepage         = 'https://github.com/cocoadogs/XJHTextInputIntercepterKit'
   # s.screenshots     = 'www.example.com/screenshots_1', 'www.example.com/screenshots_2'
@@ -28,9 +26,22 @@ TODO: Add long description of the pod here.
   s.source           = { :git => 'https://github.com/cocoadogs/XJHTextInputIntercepterKit.git', :tag => s.version.to_s }
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
 
-  s.ios.deployment_target = '8.0'
+  s.ios.deployment_target = '10.0'
 
-  s.source_files = 'XJHTextInputIntercepterKit/Classes/**/*'
+  s.public_header_files = 'XJHTextInputIntercepterKit/XJHTextInputIntercepterKit.h'
+  s.source_files = 'XJHTextInputIntercepterKit/XJHTextInputIntercepterKit.h'
+  
+  s.subspec 'Intercepter' do |ss|
+    ss.public_header_files = 'XJHTextInputIntercepterKit/XJHTextInputIntercepter.h'
+    ss.source_files = 'XJHTextInputIntercepterKit/XJHTextInputIntercepter.{h,m}','XJHTextInputIntercepterKit/XJHTextInputIntercepterInternalImp.{h,m}'
+    ss.dependency 'XJHTextInputIntercepterKit/Dispatcher'
+  end
+  
+  s.subspec 'Dispatcher' do |ss|
+    ss.public_header_files = 'XJHTextInputIntercepterKit/XJHTextInputIntercepterDispatcher.h'
+    ss.source_files = 'XJHTextInputIntercepterKit/XJHTextInputIntercepterDispatcher.{h,m}'
+    ss.dependency 'XJHMultiProxyKit'
+  end
   
   # s.resource_bundles = {
   #   'XJHTextInputIntercepterKit' => ['XJHTextInputIntercepterKit/Assets/*.png']
