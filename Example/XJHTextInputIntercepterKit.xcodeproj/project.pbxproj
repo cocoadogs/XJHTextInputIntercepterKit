@@ -19,6 +19,7 @@
 		6003F5B2195388D20070C39A /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6003F591195388D20070C39A /* UIKit.framework */; };
 		6003F5BA195388D20070C39A /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6003F5B8195388D20070C39A /* InfoPlist.strings */; };
 		6003F5BC195388D20070C39A /* Tests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6003F5BB195388D20070C39A /* Tests.m */; };
+		6B30A6572570DE5700FE7DBA /* XJHTextViewViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6B30A6562570DE5700FE7DBA /* XJHTextViewViewController.m */; };
 		6B68D0742568F6BE00323116 /* XJHViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6B68D0732568F6BE00323116 /* XJHViewController.m */; };
 		6B920563256E0BA800631D1A /* XJHTestViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6B920562256E0BA800631D1A /* XJHTestViewController.m */; };
 		71719F9F1E33DC2100824A3D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 71719F9D1E33DC2100824A3D /* LaunchScreen.storyboard */; };
@@ -60,6 +61,8 @@
 		6003F5B9195388D20070C39A /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		6003F5BB195388D20070C39A /* Tests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Tests.m; sourceTree = "<group>"; };
 		606FC2411953D9B200FFA9A0 /* Tests-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Tests-Prefix.pch"; sourceTree = "<group>"; };
+		6B30A6552570DE5700FE7DBA /* XJHTextViewViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = XJHTextViewViewController.h; sourceTree = "<group>"; };
+		6B30A6562570DE5700FE7DBA /* XJHTextViewViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = XJHTextViewViewController.m; sourceTree = "<group>"; };
 		6B68D0722568F6BE00323116 /* XJHViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = XJHViewController.h; sourceTree = "<group>"; };
 		6B68D0732568F6BE00323116 /* XJHViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = XJHViewController.m; sourceTree = "<group>"; };
 		6B920561256E0BA800631D1A /* XJHTestViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = XJHTestViewController.h; sourceTree = "<group>"; };
@@ -142,6 +145,8 @@
 				6B68D0732568F6BE00323116 /* XJHViewController.m */,
 				6B920561256E0BA800631D1A /* XJHTestViewController.h */,
 				6B920562256E0BA800631D1A /* XJHTestViewController.m */,
+				6B30A6552570DE5700FE7DBA /* XJHTextViewViewController.h */,
+				6B30A6562570DE5700FE7DBA /* XJHTextViewViewController.m */,
 			);
 			name = "Example for XJHTextInputIntercepterKit";
 			path = XJHTextInputIntercepterKit;
@@ -375,6 +380,7 @@
 				6B68D0742568F6BE00323116 /* XJHViewController.m in Sources */,
 				6003F59A195388D20070C39A /* main.m in Sources */,
 				6B920563256E0BA800631D1A /* XJHTestViewController.m in Sources */,
+				6B30A6572570DE5700FE7DBA /* XJHTextViewViewController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

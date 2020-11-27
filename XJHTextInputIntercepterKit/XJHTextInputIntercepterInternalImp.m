@@ -231,7 +231,7 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
                 if (textField.text.xjh_trimHeadAndTail.length < textField.intercepter.maxInputLength) {
                     return YES;
                 } else {
-                    !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, textField.text.xjh_trimHeadAndTail);
+                    !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
                     return NO;
                 }
             }
@@ -245,11 +245,13 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
 #pragma mark - UITextViewDelegate Methods
 
 - (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text {
-    NSLog(@"--- XJHTextInputIntercepterImp=>textView: 输入 = %@ ---", text);
+    if ([text isEqualToString:@""]) {
+        return YES;
+    }
     if ([text isEqualToString:@"\n"]) {
         [textView resignFirstResponder];
         // 此处将值传送出去
-        !textView.intercepter.inputBlock?:textView.intercepter.inputBlock(textView.intercepter, [[textView.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "] xjh_trimHeadAndTail]);
+        !textView.intercepter.inputBlock?:textView.intercepter.inputBlock(textView.intercepter, [textView.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
         return NO;
     }
     if ([text isEqualToString:@" "]) {
@@ -270,6 +272,13 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
         [textView setSelectedTextRange:textRange];
         
         return NO;
+    } else {
+        if (textView.text.xjh_trimHeadAndTail.length < textView.intercepter.maxInputLength) {
+            return YES;
+        } else {
+            !textView.intercepter.beyondBlock?:textView.intercepter.beyondBlock(textView.intercepter, [textView.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+            return NO;
+        }
     }
     return YES;
 }

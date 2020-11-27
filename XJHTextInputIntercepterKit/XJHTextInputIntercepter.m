@@ -138,10 +138,10 @@
     
     if ([noti.name isEqualToString:UITextFieldTextDidChangeNotification]) {
         UITextField *textField = (UITextField *)noti.object;
-        !textField.intercepter.inputBlock?:textField.intercepter.inputBlock(textField.intercepter, textField.text);
+        !textField.intercepter.inputBlock?:textField.intercepter.inputBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
     } else if ([noti.name isEqualToString:UITextViewTextDidChangeNotification]) {
         UITextView *textView = (UITextView *)noti.object;
-        !textView.intercepter.inputBlock?:textView.intercepter.inputBlock(textView.intercepter, textView.text);
+        !textView.intercepter.inputBlock?:textView.intercepter.inputBlock(textView.intercepter, [textView.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
     }
 }
 

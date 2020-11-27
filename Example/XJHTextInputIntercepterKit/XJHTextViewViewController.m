@@ -1,73 +1,64 @@
 //
-//  XJHTestViewController.m
+//  XJHTextViewViewController.m
 //  XJHTextInputIntercepterKit_Example
 //
-//  Created by cocoadogs on 2020/11/25.
+//  Created by cocoadogs on 2020/11/27.
 //  Copyright © 2020 cocoadogs. All rights reserved.
 //
 
-#import "XJHTestViewController.h"
+#import "XJHTextViewViewController.h"
 #import <XJHTextInputIntercepterKit/XJHTextInputIntercepter.h>
 #import <ReactiveObjC/ReactiveObjC.h>
 #import <Masonry/Masonry.h>
 
-@interface XJHTestViewController ()<UITextFieldDelegate>
+@interface XJHTextViewViewController ()<UITextViewDelegate>
 
-@property (nonatomic, strong) UITextField *textField;
+@property (nonatomic, strong) UITextView *textView;
 
 @property (nonatomic, strong) UIButton *closeBtn;
 
 @end
 
-@implementation XJHTestViewController
+@implementation XJHTextViewViewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
     self.view.backgroundColor = [UIColor whiteColor];
     [self.view addSubview:self.closeBtn];
-    [self.view addSubview:self.textField];
-    [self.textField mas_makeConstraints:^(MASConstraintMaker *make) {
-        make.center.equalTo(self.view);
+    [self.view addSubview:self.textView];
+    [self.textView mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.centerX.equalTo(self.view);
         make.leading.equalTo(self.view).offset(20);
-        make.height.mas_equalTo(44);
+        make.bottom.equalTo(self.view.mas_centerY).offset(-10);
+        make.height.mas_equalTo(100);
     }];
     [self.closeBtn mas_makeConstraints:^(MASConstraintMaker *make) {
         make.centerX.equalTo(self.view);
         make.size.mas_equalTo(CGSizeMake(100, 44));
-        make.bottom.equalTo(self.textField.mas_top).offset(-12);
+        make.top.equalTo(self.view.mas_centerY).offset(10);
     }];
 }
 
-- (void)dealloc
-{
-    NSLog(@"--- XJHTestViewController dealloc ---");
-}
+#pragma mark - UITextViewDelegate Methods
 
-#pragma mark - UITextFieldDelegate Methods
-
-- (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
-    NSLog(@"--- UITextField 输入 = %@ ---", string);
+- (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text {
+    NSLog(@"--- UITextView 输入 = %@ ---", text);
     return YES;
-}
-
-- (BOOL)textFieldShouldReturn:(UITextField *)textField {
-    return NO;
 }
 
 #pragma mark - Property Methods
 
-- (UITextField *)textField {
-    if (!_textField) {
-        _textField = [[UITextField alloc] init];
-        _textField.delegate = self;
-        _textField.textAlignment = NSTextAlignmentLeft;
-        _textField.borderStyle = UITextBorderStyleLine;
-        _textField.textColor = [UIColor blackColor];
-        _textField.font = [UIFont systemFontOfSize:16 weight:UIFontWeightRegular];
-        _textField.attributedPlaceholder = [[NSAttributedString alloc] initWithString:@"测试" attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:14 weight:UIFontWeightRegular], NSForegroundColorAttributeName:[UIColor grayColor]}];
-        _textField.clearButtonMode = UITextFieldViewModeWhileEditing;
-        _textField.returnKeyType = UIReturnKeyDone;
+- (UITextView *)textView {
+    if (!_textView) {
+        _textView = [[UITextView alloc] init];
+        _textView.delegate = self;
+        _textView.textAlignment = NSTextAlignmentLeft;
+        _textView.textColor = [UIColor blackColor];
+        _textView.font = [UIFont systemFontOfSize:16 weight:UIFontWeightRegular];
+        _textView.layer.borderColor = [UIColor blackColor].CGColor;
+        _textView.layer.borderWidth = 0.5;
+        _textView.layer.cornerRadius = 4.0f;
         XJHTextInputIntercepter *intercepter = [[XJHTextInputIntercepter alloc] init];
 //        intercepter.intercepterNumberType = XJHTextInputIntercepterNumberTypeDecimal;
         intercepter.maxInputLength = 10;
@@ -77,9 +68,9 @@
         intercepter.inputBlock = ^(XJHTextInputIntercepter * _Nonnull intercepter, NSString * _Nonnull string) {
             NSLog(@"--- 输入结果 = %@ ---", string);
         };
-        [intercepter textInputView:_textField];
+        [intercepter textInputView:_textView];
     }
-    return _textField;
+    return _textView;
 }
 
 - (UIButton *)closeBtn {
