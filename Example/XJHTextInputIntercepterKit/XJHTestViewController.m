@@ -37,6 +37,9 @@
         make.size.mas_equalTo(CGSizeMake(100, 44));
         make.bottom.equalTo(self.textField.mas_top).offset(-12);
     }];
+    UITapGestureRecognizer *recognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapAction)];
+    [self.view addGestureRecognizer:recognizer];
+    self.view.userInteractionEnabled = YES;
 }
 
 - (void)dealloc
@@ -53,6 +56,12 @@
 
 - (BOOL)textFieldShouldReturn:(UITextField *)textField {
     return NO;
+}
+
+#pragma mark - Private Methods
+
+- (void)tapAction {
+    [self.view endEditing:YES];
 }
 
 #pragma mark - Property Methods

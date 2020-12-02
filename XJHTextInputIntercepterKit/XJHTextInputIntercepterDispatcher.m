@@ -52,10 +52,19 @@
 }
 
 - (void)textFieldDidEndEditing:(UITextField *)textField {
-    [XJHProxy(UITextFieldDelegate) textFieldDidEndEditing:textField];
+    [XJHProxyExceptFirst(UITextFieldDelegate) textFieldDidEndEditing:textField];
+    id<UITextFieldDelegate> firstDelegate = self.xjh_multiProxy.firstDelegate;
+    if ([firstDelegate respondsToSelector:@selector(textFieldDidEndEditing:)]) {
+        [firstDelegate textFieldDidEndEditing:textField];
+    }
 }
+
 - (void)textFieldDidEndEditing:(UITextField *)textField reason:(UITextFieldDidEndEditingReason)reason API_AVAILABLE(ios(10.0)) {
-    [XJHProxy(UITextFieldDelegate) textFieldDidEndEditing:textField reason:reason];
+    [XJHProxyExceptFirst(UITextFieldDelegate) textFieldDidEndEditing:textField reason:reason];
+    id<UITextFieldDelegate> firstDelegate = self.xjh_multiProxy.firstDelegate;
+    if ([firstDelegate respondsToSelector:@selector(textFieldDidEndEditing:reason:)]) {
+        [firstDelegate textFieldDidEndEditing:textField reason:reason];
+    }
 }
 
 - (void)textFieldDidChangeSelection:(UITextField *)textField API_AVAILABLE(ios(13.0), tvos(13.0)) {
@@ -111,7 +120,11 @@
 }
 
 - (void)textViewDidEndEditing:(UITextView *)textView {
-    [XJHProxy(UITextViewDelegate) textViewDidEndEditing:textView];
+    [XJHProxyExceptFirst(UITextViewDelegate) textViewDidEndEditing:textView];
+    id<UITextViewDelegate> firstDelegate = self.xjh_multiProxy.firstDelegate;
+    if ([firstDelegate respondsToSelector:@selector(textViewDidEndEditing:)]) {
+        [firstDelegate textViewDidEndEditing:textView];
+    }
 }
 
 - (void)textViewDidChange:(UITextView *)textView {
@@ -144,7 +157,6 @@
 
 - (void)setTextField:(UITextField *)textField {
     _textField = textField;
-    
     textField.delegate = self;
 }
 

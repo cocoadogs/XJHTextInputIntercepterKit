@@ -22,6 +22,11 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, assign) BOOL emojiAccepted;
 
 
+@property (nonatomic, weak) UITextField *textField;
+
+@property (nonatomic, weak) UITextView *textView;
+
+
 @end
 
 NS_ASSUME_NONNULL_END

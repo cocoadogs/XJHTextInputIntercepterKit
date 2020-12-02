@@ -124,6 +124,14 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
 
 #pragma mark - UITextFieldDelegate Methods
 
+- (void)textFieldDidEndEditing:(UITextField *)textField {
+    [self didEndEdting:textField];
+}
+
+- (void)textFieldDidEndEditing:(UITextField *)textField reason:(UITextFieldDidEndEditingReason)reason API_AVAILABLE(ios(10.0)) {
+    [self didEndEdting:textField];
+}
+
 - (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
     if ([string isEqualToString:@""] || [string isEqualToString:@"\n"]) {
         return YES;
@@ -134,7 +142,12 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
             if (string.length > 0) {
                 unichar single = [string characterAtIndex:0];//当前输入的字符
                 if ('0' <= single && single <= '9') {
-                    return YES;
+                    if (textField.text.length < textField.intercepter.maxInputLength) {
+                        return YES;
+                    } else {
+                        !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                        return NO;
+                    }
                 } else {
                     return NO;
                 }
@@ -153,7 +166,7 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
             if (string.length > 0) {
                 unichar single = [string characterAtIndex:0];//当前输入的字符
                 if (('0' <= single && single <= '9') || single == '.') {
-                    if (textField.text.xjh_trimHeadAndTail.length == 0) {
+                    if (textField.text.length == 0) {
                         if (single == '.') {
                             return NO;
                         }
@@ -228,11 +241,28 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
                 
                 return NO;
             } else {
-                if (textField.text.xjh_trimHeadAndTail.length < textField.intercepter.maxInputLength) {
-                    return YES;
-                } else {
-                    !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
-                    return NO;
+                if ([[textField.textInputMode primaryLanguage] isEqualToString:@"zh-Hans"]) {
+                    UITextRange *markedRange = [textField markedTextRange];
+                    //获取高亮部分
+                    UITextPosition *position = [textField positionFromPosition:markedRange.start offset:0];
+                    if (!position) {
+                        // 没有高亮选择的字，则对已输入的文字进行字数统计和限制
+                        if (textField.text.length < textField.intercepter.maxInputLength) {
+                            return YES;
+                        } else {
+                            !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                            return NO;
+                        }
+                    } else {
+                        UITextRange *startRange= [textField textRangeFromPosition:textField.beginningOfDocument toPosition:markedRange.start];
+                        
+                        if ([textField textInRange:startRange].length < textField.intercepter.maxInputLength) {
+                            return YES;
+                        } else {
+                            !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [[textField textInRange:startRange] stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                            return NO;
+                        }
+                    }
                 }
             }
         }
@@ -243,6 +273,16 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
 
 
 #pragma mark - UITextViewDelegate Methods
+
+- (void)textViewDidEndEditing:(UITextView *)textView {
+    if (textView.text.length <= textView.intercepter.maxInputLength) {
+        !textView.intercepter.inputBlock?:textView.intercepter.inputBlock(textView.intercepter, [textView.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+    } else {
+        NSString *subString = [textView.text substringToIndex:textView.intercepter.maxInputLength];
+        textView.text = subString;
+        !textView.intercepter.inputBlock?:textView.intercepter.inputBlock(textView.intercepter, [subString stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+    }
+}
 
 - (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text {
     if ([text isEqualToString:@""]) {
@@ -273,7 +313,7 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
         
         return NO;
     } else {
-        if (textView.text.xjh_trimHeadAndTail.length < textView.intercepter.maxInputLength) {
+        if (textView.text.length < textView.intercepter.maxInputLength) {
             return YES;
         } else {
             !textView.intercepter.beyondBlock?:textView.intercepter.beyondBlock(textView.intercepter, [textView.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
@@ -282,5 +322,28 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
     }
     return YES;
 }
+
+#pragma mark - Private Methods
+
+- (void)didEndEdting:(UITextField *)textField {
+    if (textField.text.length <= textField.intercepter.maxInputLength) {
+        !textField.intercepter.inputBlock?:textField.intercepter.inputBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+    } else {
+        NSString *subString = [textField.text substringToIndex:textField.intercepter.maxInputLength];
+        textField.text = subString;
+        !textField.intercepter.inputBlock?:textField.intercepter.inputBlock(textField.intercepter, [subString stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+    }
+}
+
+#pragma mark - Setter Methods
+
+- (void)setTextField:(UITextField *)textField {
+    _textField = textField;
+}
+
+- (void)setTextView:(UITextView *)textView {
+    _textView = textView;
+}
+
 
 @end

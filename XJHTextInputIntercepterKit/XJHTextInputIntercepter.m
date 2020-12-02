@@ -101,6 +101,7 @@
         [[NSNotificationCenter defaultCenter] addObserver:intercepter selector:@selector(textInputDidChangeWithNotification:) name:UITextFieldTextDidChangeNotification object:textField];
         [intercepter.dispatcher xjh_addDelegate:textField.delegate];
         textField.delegate = intercepter.imp?:intercepter.internalImp;
+        intercepter.internalImp.textField = textField;
         [intercepter.dispatcher xjh_addDelegate:textField.delegate];
         intercepter.dispatcher.textField = textField;
     } else if ([textInputView isKindOfClass:[UITextView class]]) {
@@ -109,6 +110,7 @@
         [[NSNotificationCenter defaultCenter] addObserver:intercepter selector:@selector(textInputDidChangeWithNotification:) name:UITextViewTextDidChangeNotification object:textView];
         [intercepter.dispatcher xjh_addDelegate:textView.delegate];
         textView.delegate = intercepter.imp?:intercepter.internalImp;
+        intercepter.internalImp.textView = textView;
         [intercepter.dispatcher xjh_addDelegate:textView.delegate];
         intercepter.dispatcher.textView = textView;
     }
