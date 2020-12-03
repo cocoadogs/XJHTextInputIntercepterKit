@@ -53,42 +53,54 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
 + (BOOL)xjh_stringContainsEmoji:(NSString *)string {
     __block BOOL returnValue = NO;
     if (string.length > 0) {
-        [string enumerateSubstringsInRange:NSMakeRange(0, [string length]) options:NSStringEnumerationByComposedCharacterSequences usingBlock:
-         ^(NSString *substring, NSRange substringRange, NSRange enclosingRange, BOOL *stop){
-             const unichar hs = [substring characterAtIndex:0];
-             // surrogate pair
-             if (0xd800 <= hs && hs <= 0xdbff){
-                 if (substring.length > 1){
+        if ([self xjh_stringContainsEmojiByUTF8Length:string]) {
+            returnValue = YES;
+        } else {
+            [string enumerateSubstringsInRange:NSMakeRange(0, [string length]) options:NSStringEnumerationByComposedCharacterSequences usingBlock:
+             ^(NSString *substring, NSRange substringRange, NSRange enclosingRange, BOOL *stop){
+                 const unichar hs = [substring characterAtIndex:0];
+                 // surrogate pair
+                 if (0xd800 <= hs && hs <= 0xdbff){
+                     if (substring.length > 1){
+                         const unichar ls = [substring characterAtIndex:1];
+                         const int uc = ((hs - 0xd800) * 0x400) + (ls - 0xdc00) + 0x10000;
+                         if (0x1d000 <= uc && uc <= 0x1f77f){
+                             returnValue = YES;
+                         }
+                     }
+                 }
+                 else if (substring.length > 1){
                      const unichar ls = [substring characterAtIndex:1];
-                     const int uc = ((hs - 0xd800) * 0x400) + (ls - 0xdc00) + 0x10000;
-                     if (0x1d000 <= uc && uc <= 0x1f77f){
+                     if (ls == 0x20e3 || ls == 0xfe0f){
+                         returnValue = YES;
+                     }
+                 }else{
+                     // non surrogate
+                     if (0x2100 <= hs && hs <= 0x27ff){
+                         returnValue = YES;
+                     }else if (0x2B05 <= hs && hs <= 0x2b07){
+                         returnValue = YES;
+                     }else if (0x2934 <= hs && hs <= 0x2935){
+                         returnValue = YES;
+                     }else if (0x3297 <= hs && hs <= 0x3299){
+                         returnValue = YES;
+                     }
+                     else if (hs == 0xa9 || hs == 0xae || hs == 0x303d || hs == 0x3030 || hs == 0x2b55 || hs == 0x2b1c || hs == 0x2b1b || hs == 0x2b50){
                          returnValue = YES;
                      }
                  }
-             }
-             else if (substring.length > 1){
-                 const unichar ls = [substring characterAtIndex:1];
-                 if (ls == 0x20e3 || ls == 0xfe0f){
-                     returnValue = YES;
-                 }
-             }else{
-                 // non surrogate
-                 if (0x2100 <= hs && hs <= 0x27ff){
-                     returnValue = YES;
-                 }else if (0x2B05 <= hs && hs <= 0x2b07){
-                     returnValue = YES;
-                 }else if (0x2934 <= hs && hs <= 0x2935){
-                     returnValue = YES;
-                 }else if (0x3297 <= hs && hs <= 0x3299){
-                     returnValue = YES;
-                 }
-                 else if (hs == 0xa9 || hs == 0xae || hs == 0x303d || hs == 0x3030 || hs == 0x2b55 || hs == 0x2b1c || hs == 0x2b1b || hs == 0x2b50){
-                     returnValue = YES;
-                 }
-             }
-        }];
+            }];
+        }
     }
     return returnValue;
+}
+
++ (BOOL)xjh_stringContainsEmojiByUTF8Length:(NSString *)string {
+    NSUInteger stringUtf8Length = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    if (stringUtf8Length >= 4 && (stringUtf8Length / string.length != 3)) {
+        return YES;
+    }
+    return NO;
 }
 
 - (BOOL)xjh_matchRegularWithType:(XJHTextInputStringType)type {
@@ -247,20 +259,43 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
                     UITextPosition *position = [textField positionFromPosition:markedRange.start offset:0];
                     if (!position) {
                         // 没有高亮选择的字，则对已输入的文字进行字数统计和限制
-                        if (textField.text.length < textField.intercepter.maxInputLength) {
-                            return YES;
+                        if (textField.intercepter.isEmojiAccepted) {
+                            return [self shouldChangeInputString:string range:nil textField:textField];
                         } else {
-                            !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
-                            return NO;
+                            if ([NSString xjh_stringContainsEmoji:string]) {
+                                return NO;
+                            } else {
+                                return [self shouldChangeInputString:string range:nil textField:textField];
+                            }
                         }
                     } else {
                         UITextRange *startRange= [textField textRangeFromPosition:textField.beginningOfDocument toPosition:markedRange.start];
-                        
-                        if ([textField textInRange:startRange].length < textField.intercepter.maxInputLength) {
-                            return YES;
+                        if (textField.intercepter.isEmojiAccepted) {
+                            if ([self canContinuesInRange:startRange textField:textField]) {
+                                return [self shouldChangeInputString:string range:startRange textField:textField];
+                            } else {
+                                return NO;
+                            }
                         } else {
-                            !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [[textField textInRange:startRange] stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                            if ([NSString xjh_stringContainsEmoji:string]) {
+                                return NO;
+                            } else {
+                                if ([self canContinuesInRange:startRange textField:textField]) {
+                                    return [self shouldChangeInputString:string range:startRange textField:textField];
+                                } else {
+                                    return NO;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    if (textField.intercepter.isEmojiAccepted) {
+                        return [self shouldChangeInputString:string range:nil textField:textField];
+                    } else {
+                        if ([NSString xjh_stringContainsEmoji:string]) {
                             return NO;
+                        } else {
+                            return [self shouldChangeInputString:string range:nil textField:textField];
                         }
                     }
                 }
@@ -326,13 +361,139 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
 #pragma mark - Private Methods
 
 - (void)didEndEdting:(UITextField *)textField {
-    if (textField.text.length <= textField.intercepter.maxInputLength) {
-        !textField.intercepter.inputBlock?:textField.intercepter.inputBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
-    } else {
-        NSString *subString = [textField.text substringToIndex:textField.intercepter.maxInputLength];
-        textField.text = subString;
-        !textField.intercepter.inputBlock?:textField.intercepter.inputBlock(textField.intercepter, [subString stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+    NSString *origin = textField.text;
+    NSString *string = [self processingTextWithInputString:origin intercepter:textField.intercepter];
+    if ([origin isEqualToString:string]) {
+        !textField.intercepter.inputBlock?:textField.intercepter.inputBlock(textField.intercepter, [string stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
     }
+    textField.text = string;
+}
+
+
+/// 判断输入字符串是否符合要求
+/// @param string 输入字符串
+/// @param range 已输入到输入框的文字的range
+/// @param textField 输入框
+- (BOOL)shouldChangeInputString:(NSString *)string range:(UITextRange *)range textField:(UITextField *)textField {
+    if (range) {
+        // 处于高亮的中文输入法状态
+        NSUInteger alreadyLength = [self actualLengthForString:[textField textInRange:range] intercepter:textField.intercepter];
+        return alreadyLength < textField.intercepter.maxInputLength;
+    } else {
+        NSUInteger alreadyLength = [self actualLengthForString:textField.text intercepter:textField.intercepter];
+        if (alreadyLength < textField.intercepter.maxInputLength) {
+            NSUInteger appendLength = [self actualLengthForString:string intercepter:textField.intercepter];
+            if (alreadyLength + appendLength <= textField.intercepter.maxInputLength) {
+                return YES;
+            } else {
+                !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                return NO;
+            }
+        } else {
+            !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+            return NO;
+        }
+    }
+    return YES;
+}
+
+- (BOOL)shouldChangeInputString:(NSString *)string position:(UITextPosition *)position textView:(UITextView *)textView {
+    
+    return NO;
+}
+
+/// 高亮输入状态是否还可以继续输入
+/// @param range 高亮选中的之前位置的字符串范围
+/// @param textField 输入框
+- (BOOL)canContinuesInRange:(UITextRange *)range textField:(UITextField *)textField {
+    NSString *origin = [textField textInRange:range];
+    NSString *content = [self processingTextWithInputString:origin intercepter:textField.intercepter];
+    if (![origin isEqualToString:content]) {
+        textField.text = content;
+        return NO;
+    }
+//    return [self processingTextWithInputString:[textField textInRange:range] intercepter:textField.intercepter].length < textField.intercepter.maxInputLength;
+    return YES;
+}
+
+- (BOOL)canContinuesInRange:(UITextRange *)range textView:(UITextView *)textView {
+    NSString *origin = [textView textInRange:range];
+    NSString *content = [self processingTextWithInputString:origin intercepter:textView.intercepter];
+    if (![origin isEqualToString:content]) {
+        textView.text = content;
+        return NO;
+    }
+    return YES;
+}
+
+#pragma mark - NSString Dispatch Methods
+
+- (NSString *)processingTextWithInputString:(NSString *)string intercepter:(XJHTextInputIntercepter *)intercepter {
+    NSUInteger acceptLength = intercepter.maxInputLength;
+    if (intercepter.isDoubleBytePerChineseCharacter) {
+        if (intercepter.isEmojiAccepted) {
+            // 调用 UTF8 编码处理 一个字符一个字节 一个汉字3个字节 一个表情4个字节
+            NSUInteger textBytesLength = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+            if (textBytesLength > acceptLength) {
+                NSRange range;
+                NSUInteger byteLength = 0;
+                NSString *text = string;
+                for (NSUInteger i = 0; i < string.length && byteLength <= acceptLength; i+= range.length) {
+                    range = [string rangeOfComposedCharacterSequenceAtIndex:i];
+                    byteLength += strlen([[text substringWithRange:range] UTF8String]);
+                    if (byteLength > acceptLength) {
+                        NSString *mText = [text substringWithRange:NSMakeRange(0, range.location)];
+                        string = mText;
+                    }
+                }
+                !intercepter.beyondBlock?:intercepter.beyondBlock(intercepter, [string stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+            }
+        } else {
+            // 不允许输入表情 一个字符一个字节 一个汉字2个字节
+            NSStringEncoding encoding = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingGB_18030_2000);
+            NSData *data = [string dataUsingEncoding:encoding];
+            NSUInteger length = [data length];
+            if (length > acceptLength) {
+                NSData *subdata = [data subdataWithRange:NSMakeRange(0, acceptLength)];
+                NSString *content = [[NSString alloc] initWithData:subdata encoding:encoding];//注意：当截取CharacterCount长度字符时把中文字符截断返回的content会是nil
+                if (!content || content.length == 0) {
+                    subdata = [data subdataWithRange:NSMakeRange(0, acceptLength - 1)];
+                    content =  [[NSString alloc] initWithData:subdata encoding:encoding];
+                }
+                !intercepter.beyondBlock?:intercepter.beyondBlock(intercepter, [content stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                string = content;
+            }
+        }
+    } else {
+        if (string.length > acceptLength) {
+            NSRange range = [string rangeOfComposedCharacterSequenceAtIndex:acceptLength];
+            if (range.length == 1) {
+                string = [string substringToIndex:acceptLength];
+            } else {
+                NSRange range = [string rangeOfComposedCharacterSequencesForRange:NSMakeRange(0, acceptLength)];
+                string = [string substringWithRange:range];
+            }
+            !intercepter.beyondBlock?:intercepter.beyondBlock(intercepter, [string stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+        }
+    }
+    return string;
+}
+
+- (NSUInteger)actualLengthForString:(NSString *)string intercepter:(XJHTextInputIntercepter *)intercepter {
+    if (intercepter.isDoubleBytePerChineseCharacter) {
+        if (intercepter.isEmojiAccepted) {
+            // 调用 UTF8 编码处理 一个字符一个字节 一个汉字3个字节 一个表情4个字节
+            NSUInteger textBytesLength = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+            return textBytesLength;
+        } else {
+            // 不允许输入表情 一个字符一个字节 一个汉字2个字节
+            NSStringEncoding encoding = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingGB_18030_2000);
+            NSData *data = [string dataUsingEncoding:encoding];
+            NSUInteger length = [data length];
+            return length;
+        }
+    }
+    return string.length;
 }
 
 #pragma mark - Setter Methods
