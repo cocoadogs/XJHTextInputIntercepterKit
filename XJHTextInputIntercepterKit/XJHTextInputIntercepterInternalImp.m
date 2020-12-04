@@ -8,47 +8,15 @@
 #import "XJHTextInputIntercepterInternalImp.h"
 #import "XJHTextInputIntercepter.h"
 
-#pragma mark - NSString Input Type
+#pragma mark - NSString Emoji
 
-typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
-    XJHTextInputStringTypeNumber,
-    XJHTextInputStringTypeLetter,
-    XJHTextInputStringTypeChinese,
-    XJHTextInputStringTypeEmoji
-};
-
-@interface NSString (XJHTextInputStringType)
-
-- (BOOL)xjh_stringIsType:(XJHTextInputStringType)type;
-
-- (BOOL)xjh_stringContainsEmoji;
-
-- (NSString *)xjh_trimHeadAndTail;
+@interface NSString (XJHTextInputStringEmoji)
 
 + (BOOL)xjh_stringContainsEmoji:(NSString *)string;
 
 @end
 
 @implementation NSString (XJHTextInputStringType)
-
-- (BOOL)xjh_stringIsType:(XJHTextInputStringType)type {
-    return [self xjh_matchRegularWithType:type];
-}
-
-- (BOOL)xjh_stringContainsEmoji {
-    if ([self xjh_matchRegularWithType:XJHTextInputStringTypeEmoji]) {
-        return YES;
-    }
-    if ([NSString xjh_stringContainsEmoji:self]) {
-        return YES;
-    }
-    return NO;
-}
-
-- (NSString *)xjh_trimHeadAndTail {
-    NSCharacterSet *set = [NSCharacterSet whitespaceAndNewlineCharacterSet];
-    return [self stringByTrimmingCharactersInSet:set];
-}
 
 + (BOOL)xjh_stringContainsEmoji:(NSString *)string {
     __block BOOL returnValue = NO;
@@ -101,28 +69,6 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
         return YES;
     }
     return NO;
-}
-
-- (BOOL)xjh_matchRegularWithType:(XJHTextInputStringType)type {
-    NSString *regularString = @"";
-    switch (type) {
-        case XJHTextInputStringTypeNumber:
-            regularString = @"^[0-9]+$";
-            break;
-        case XJHTextInputStringTypeLetter:
-            regularString = @"^[A-Za-z]+$";
-            break;
-        case XJHTextInputStringTypeChinese:
-            regularString = @"^[\u4e00-\u9fa5]+$";
-            break;
-        case XJHTextInputStringTypeEmoji:
-            regularString = @"[^\\u0020-\\u007E\\u00A0-\\u00BE\\u2E80-\\uA4CF\\uF900-\\uFAFF\\uFE30-\\uFE4F\\uFF00-\\uFFEF\\u0080-\\u009F\\u2000-\\u201f\r\n]";
-            break;
-        default:
-            break;
-    }
-    NSPredicate *regularTest = [NSPredicate predicateWithFormat:@"SELF MATCHES %@", regularString];
-    return [regularTest evaluateWithObject:self];
 }
 
 @end
@@ -234,24 +180,7 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
             break;
         default: {
             if ([string isEqualToString:@" "]) {
-                /* 在输入单个字符或者粘贴内容时做如下处理，已确定光标应该停留的正确位置，
-                没有下段从字符中间插入或者粘贴光标位置会出错 */
-                // 首先使用 non-breaking space 代替默认输入的@“ ”空格
-                string = [string stringByReplacingOccurrencesOfString:@" "
-                                 withString:@"\u00a0"];
-                textField.text = [textField.text stringByReplacingCharactersInRange:range
-                                                 withString:string];
-                //确定输入或者粘贴字符后光标位置
-                UITextPosition *beginning = textField.beginningOfDocument;
-                UITextPosition *cursorLoc = [textField positionFromPosition:beginning
-                                             offset:range.location+string.length];
-                // 选中文本起使位置和结束为止设置同一位置
-                UITextRange *textRange = [textField textRangeFromPosition:cursorLoc
-                                                    toPosition:cursorLoc];
-                // 选中字符范围（由于textRange范围的起始结束位置一样所以并没有选中字符）
-                [textField setSelectedTextRange:textRange];
-                
-                return NO;
+                return [self handleWhiteSpace:string range:range intputView:textField responder:textField];
             } else {
                 return [self outterShouldChangeInputString:string intercepter:textField.intercepter inputView:textField responder:textField];
             }
@@ -284,23 +213,7 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
         return NO;
     }
     if ([text isEqualToString:@" "]) {
-        /* 在输入单个字符或者粘贴内容时做如下处理，已确定光标应该停留的正确位置，
-        没有下段从字符中间插入或者粘贴光标位置会出错 */
-        // 首先使用 non-breaking space 代替默认输入的@“ ”空格
-        text = [text stringByReplacingOccurrencesOfString:@" " withString:@"\u00a0"];
-        textView.text = [textView.text stringByReplacingCharactersInRange:range
-                                         withString:text];
-        //确定输入或者粘贴字符后光标位置
-        UITextPosition *beginning = textView.beginningOfDocument;
-        UITextPosition *cursorLoc = [textView positionFromPosition:beginning
-                                     offset:range.location+text.length];
-        // 选中文本起使位置和结束为止设置同一位置
-        UITextRange *textRange = [textView textRangeFromPosition:cursorLoc
-                                            toPosition:cursorLoc];
-        // 选中字符范围（由于textRange范围的起始结束位置一样所以并没有选中字符）
-        [textView setSelectedTextRange:textRange];
-        
-        return NO;
+        return [self handleWhiteSpace:text range:range intputView:textView responder:textView];
     } else {
         return [self outterShouldChangeInputString:text intercepter:textView.intercepter inputView:textView responder:textView];
     }
@@ -317,6 +230,32 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
     }
     textField.text = string;
 }
+
+- (BOOL)handleWhiteSpace:(NSString *)whiteSpace range:(NSRange)range intputView:(id<UITextInput>)inputView responder:(UIResponder *)responder {
+    /* 在输入单个字符或者粘贴内容时做如下处理，已确定光标应该停留的正确位置，
+    没有下段从字符中间插入或者粘贴光标位置会出错 */
+    // 首先使用 non-breaking space 代替默认输入的@“ ”空格
+    whiteSpace = [whiteSpace stringByReplacingOccurrencesOfString:@" " withString:@"\u00a0"];
+    if ([responder isKindOfClass:[UITextField class]]) {
+        UITextField *textField = (UITextField *)responder;
+        textField.text = [textField.text stringByReplacingCharactersInRange:range withString:whiteSpace];
+    }
+    if ([responder isKindOfClass:[UITextView class]]) {
+        UITextView *textView = (UITextView *)responder;
+        textView.text = [textView.text stringByReplacingCharactersInRange:range withString:whiteSpace];
+    }
+    //确定输入或者粘贴字符后光标位置
+    UITextPosition *beginning = inputView.beginningOfDocument;
+    UITextPosition *cursorLoc = [inputView positionFromPosition:beginning
+                                 offset:range.location+whiteSpace.length];
+    // 选中文本起使位置和结束为止设置同一位置
+    UITextRange *textRange = [inputView textRangeFromPosition:cursorLoc
+                                        toPosition:cursorLoc];
+    // 选中字符范围（由于textRange范围的起始结束位置一样所以并没有选中字符）
+    [inputView setSelectedTextRange:textRange];
+    return NO;
+}
+
 
 - (BOOL)outterShouldChangeInputString:(NSString *)string intercepter:(XJHTextInputIntercepter *)intercepter inputView:(id<UITextInput>)inputView responder:(UIResponder *)responder {
     if ([[responder.textInputMode primaryLanguage] isEqualToString:@"zh-Hans"]) {
