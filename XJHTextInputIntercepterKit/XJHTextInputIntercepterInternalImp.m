@@ -253,52 +253,7 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
                 
                 return NO;
             } else {
-                if ([[textField.textInputMode primaryLanguage] isEqualToString:@"zh-Hans"]) {
-                    UITextRange *markedRange = [textField markedTextRange];
-                    //获取高亮部分
-                    UITextPosition *position = [textField positionFromPosition:markedRange.start offset:0];
-                    if (!position) {
-                        // 没有高亮选择的字，则对已输入的文字进行字数统计和限制
-                        if (textField.intercepter.isEmojiAccepted) {
-                            return [self shouldChangeInputString:string range:nil textField:textField];
-                        } else {
-                            if ([NSString xjh_stringContainsEmoji:string]) {
-                                return NO;
-                            } else {
-                                return [self shouldChangeInputString:string range:nil textField:textField];
-                            }
-                        }
-                    } else {
-                        UITextRange *startRange= [textField textRangeFromPosition:textField.beginningOfDocument toPosition:markedRange.start];
-                        if (textField.intercepter.isEmojiAccepted) {
-                            if ([self canContinuesInRange:startRange textField:textField]) {
-                                return [self shouldChangeInputString:string range:startRange textField:textField];
-                            } else {
-                                return NO;
-                            }
-                        } else {
-                            if ([NSString xjh_stringContainsEmoji:string]) {
-                                return NO;
-                            } else {
-                                if ([self canContinuesInRange:startRange textField:textField]) {
-                                    return [self shouldChangeInputString:string range:startRange textField:textField];
-                                } else {
-                                    return NO;
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    if (textField.intercepter.isEmojiAccepted) {
-                        return [self shouldChangeInputString:string range:nil textField:textField];
-                    } else {
-                        if ([NSString xjh_stringContainsEmoji:string]) {
-                            return NO;
-                        } else {
-                            return [self shouldChangeInputString:string range:nil textField:textField];
-                        }
-                    }
-                }
+                return [self outterShouldChangeInputString:string intercepter:textField.intercepter inputView:textField responder:textField];
             }
         }
             break;
@@ -310,13 +265,12 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
 #pragma mark - UITextViewDelegate Methods
 
 - (void)textViewDidEndEditing:(UITextView *)textView {
-    if (textView.text.length <= textView.intercepter.maxInputLength) {
-        !textView.intercepter.inputBlock?:textView.intercepter.inputBlock(textView.intercepter, [textView.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
-    } else {
-        NSString *subString = [textView.text substringToIndex:textView.intercepter.maxInputLength];
-        textView.text = subString;
-        !textView.intercepter.inputBlock?:textView.intercepter.inputBlock(textView.intercepter, [subString stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+    NSString *origin = textView.text;
+    NSString *string = [self processingTextWithInputString:origin intercepter:textView.intercepter];
+    if ([origin isEqualToString:string]) {
+        !textView.intercepter.inputBlock?:textView.intercepter.inputBlock(textView.intercepter, [string stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
     }
+    textView.text = string;
 }
 
 - (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text {
@@ -326,7 +280,7 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
     if ([text isEqualToString:@"\n"]) {
         [textView resignFirstResponder];
         // 此处将值传送出去
-        !textView.intercepter.inputBlock?:textView.intercepter.inputBlock(textView.intercepter, [textView.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+//        !textView.intercepter.inputBlock?:textView.intercepter.inputBlock(textView.intercepter, [textView.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
         return NO;
     }
     if ([text isEqualToString:@" "]) {
@@ -348,12 +302,7 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
         
         return NO;
     } else {
-        if (textView.text.length < textView.intercepter.maxInputLength) {
-            return YES;
-        } else {
-            !textView.intercepter.beyondBlock?:textView.intercepter.beyondBlock(textView.intercepter, [textView.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
-            return NO;
-        }
+        return [self outterShouldChangeInputString:text intercepter:textView.intercepter inputView:textView responder:textView];
     }
     return YES;
 }
@@ -369,58 +318,100 @@ typedef NS_ENUM(NSUInteger, XJHTextInputStringType) {
     textField.text = string;
 }
 
+- (BOOL)outterShouldChangeInputString:(NSString *)string intercepter:(XJHTextInputIntercepter *)intercepter inputView:(id<UITextInput>)inputView responder:(UIResponder *)responder {
+    if ([[responder.textInputMode primaryLanguage] isEqualToString:@"zh-Hans"]) {
+        UITextRange *markedRange = [inputView markedTextRange];
+        //获取高亮部分
+        UITextPosition *position = [inputView positionFromPosition:markedRange.start offset:0];
+        if (!position) {
+            // 没有高亮选择的字，则对已输入的文字进行字数统计和限制
+            if (intercepter.isEmojiAccepted) {
+                return [self shouldChangeInputString:string range:nil intercepter:intercepter inputView:inputView];
+            } else {
+                if ([NSString xjh_stringContainsEmoji:string]) {
+                    return NO;
+                } else {
+                    return [self shouldChangeInputString:string range:nil intercepter:intercepter inputView:inputView];
+                }
+            }
+        } else {
+            UITextRange *startRange= [inputView textRangeFromPosition:inputView.beginningOfDocument toPosition:markedRange.start];
+            if (intercepter.isEmojiAccepted) {
+                if ([self canContinuesInRange:startRange intercepter:intercepter inputView:inputView]) {
+                    return [self shouldChangeInputString:string range:startRange intercepter:intercepter inputView:inputView];
+                } else {
+                    return NO;
+                }
+            } else {
+                if ([NSString xjh_stringContainsEmoji:string]) {
+                    return NO;
+                } else {
+                    if ([self canContinuesInRange:startRange intercepter:intercepter inputView:inputView]) {
+                        return [self shouldChangeInputString:string range:startRange intercepter:intercepter inputView:inputView];
+                    } else {
+                        return NO;
+                    }
+                }
+            }
+        }
+    } else {
+        if (intercepter.isEmojiAccepted) {
+            return [self shouldChangeInputString:string range:nil intercepter:intercepter inputView:inputView];
+        } else {
+            if ([NSString xjh_stringContainsEmoji:string]) {
+                return NO;
+            } else {
+                return [self shouldChangeInputString:string range:nil intercepter:intercepter inputView:inputView];
+            }
+        }
+    }
+    return YES;
+}
+
 
 /// 判断输入字符串是否符合要求
 /// @param string 输入字符串
 /// @param range 已输入到输入框的文字的range
-/// @param textField 输入框
-- (BOOL)shouldChangeInputString:(NSString *)string range:(UITextRange *)range textField:(UITextField *)textField {
+/// @param intercepter 拦截器
+/// @param inputView 输入控件
+- (BOOL)shouldChangeInputString:(NSString *)string range:(UITextRange *)range intercepter:(XJHTextInputIntercepter *)intercepter inputView:(id<UITextInput>)inputView {
     if (range) {
         // 处于高亮的中文输入法状态
-        NSUInteger alreadyLength = [self actualLengthForString:[textField textInRange:range] intercepter:textField.intercepter];
-        return alreadyLength < textField.intercepter.maxInputLength;
+        NSUInteger alreadyLength = [self actualLengthForString:[inputView textInRange:range] intercepter:intercepter];
+        return alreadyLength < intercepter.maxInputLength;
     } else {
-        NSUInteger alreadyLength = [self actualLengthForString:textField.text intercepter:textField.intercepter];
-        if (alreadyLength < textField.intercepter.maxInputLength) {
-            NSUInteger appendLength = [self actualLengthForString:string intercepter:textField.intercepter];
-            if (alreadyLength + appendLength <= textField.intercepter.maxInputLength) {
+        NSString *existString = [inputView textInRange:[inputView textRangeFromPosition:inputView.beginningOfDocument toPosition:inputView.endOfDocument]];
+        NSUInteger existLength = [self actualLengthForString:existString intercepter:intercepter];
+        if (existLength < intercepter.maxInputLength) {
+            NSUInteger appendLength = [self actualLengthForString:string intercepter:intercepter];
+            if (existLength + appendLength <= intercepter.maxInputLength) {
                 return YES;
             } else {
-                !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                !intercepter.beyondBlock?:intercepter.beyondBlock(intercepter, [existString stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
                 return NO;
             }
         } else {
-            !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+            !intercepter.beyondBlock?:intercepter.beyondBlock(intercepter, [existString stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
             return NO;
         }
     }
     return YES;
 }
 
-- (BOOL)shouldChangeInputString:(NSString *)string position:(UITextPosition *)position textView:(UITextView *)textView {
-    
-    return NO;
-}
-
 /// 高亮输入状态是否还可以继续输入
 /// @param range 高亮选中的之前位置的字符串范围
-/// @param textField 输入框
-- (BOOL)canContinuesInRange:(UITextRange *)range textField:(UITextField *)textField {
-    NSString *origin = [textField textInRange:range];
-    NSString *content = [self processingTextWithInputString:origin intercepter:textField.intercepter];
+/// @param intercepter 拦截器
+/// @param inputView 输入控件
+- (BOOL)canContinuesInRange:(UITextRange *)range intercepter:(XJHTextInputIntercepter *)intercepter inputView:(id<UITextInput>)inputView {
+    NSString *origin = [inputView textInRange:range];
+    NSString *content = [self processingTextWithInputString:origin intercepter:intercepter];
     if (![origin isEqualToString:content]) {
-        textField.text = content;
-        return NO;
-    }
-//    return [self processingTextWithInputString:[textField textInRange:range] intercepter:textField.intercepter].length < textField.intercepter.maxInputLength;
-    return YES;
-}
-
-- (BOOL)canContinuesInRange:(UITextRange *)range textView:(UITextView *)textView {
-    NSString *origin = [textView textInRange:range];
-    NSString *content = [self processingTextWithInputString:origin intercepter:textView.intercepter];
-    if (![origin isEqualToString:content]) {
-        textView.text = content;
+        if ([inputView isKindOfClass:[UITextField class]]) {
+            ((UITextField *)inputView).text = content;
+        }
+        if ([inputView isKindOfClass:[UITextView class]]) {
+            ((UITextView *)inputView).text = content;
+        }
         return NO;
     }
     return YES;
