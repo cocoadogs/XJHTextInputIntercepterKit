@@ -57,19 +57,6 @@ typedef NS_ENUM(NSUInteger, XJHTextInputIntercepterNumberType) {
  */
 @property (nonatomic, assign, getter=isDoubleBytePerChineseCharacter) BOOL doubleBytePerChineseCharacter;
 
-/// 设置需要拦截的输入框
-/// @param textInputView 输入框
-- (void)textInputView:(UIView *)textInputView;
-
-/// 设置拦截器和拦截的输入框
-/// @param textInputView 输入框
-/// @param intercepter 拦截器
-+ (void)textInputView:(UIView *)textInputView setInputIntercepter:(XJHTextInputIntercepter *)intercepter;
-
-/// 生成输入框拦截器
-/// @param textInputView 输入框
-/// @param beyondBlock 超限回调
-+ (XJHTextInputIntercepter *)textInputView:(UIView *)textInputView beyondBlock:(XJHTextInputIntercepterBlock)beyondBlock;
 
 @end
 

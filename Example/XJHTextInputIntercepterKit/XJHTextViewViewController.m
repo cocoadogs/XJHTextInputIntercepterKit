@@ -60,7 +60,6 @@
         _textView.layer.borderWidth = 0.5;
         _textView.layer.cornerRadius = 4.0f;
         XJHTextInputIntercepter *intercepter = [[XJHTextInputIntercepter alloc] init];
-//        intercepter.intercepterNumberType = XJHTextInputIntercepterNumberTypeDecimal;
         intercepter.maxInputLength = 10;
         intercepter.beyondBlock = ^(XJHTextInputIntercepter * _Nonnull intercepter, NSString * _Nonnull string) {
             NSLog(@"--- 超出最长长度了，结果 = %@ ---", string);
@@ -68,7 +67,8 @@
         intercepter.inputBlock = ^(XJHTextInputIntercepter * _Nonnull intercepter, NSString * _Nonnull string) {
             NSLog(@"--- 输入结果 = %@ ---", string);
         };
-        [intercepter textInputView:_textView];
+        _textView.intercepter = intercepter;
+//        [intercepter textInputView:_textView];
     }
     return _textView;
 }

@@ -137,7 +137,12 @@
                     if (single == '.') {
                         if (!textField.hasDecimalPoint) {
                             textField.hasDecimalPoint = YES;
-                            return YES;
+                            if (textField.text.length < textField.intercepter.maxInputLength) {
+                                return YES;
+                            } else {
+                                !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                                return NO;
+                            }
                         } else {
                             return NO;
                         }
@@ -147,7 +152,12 @@
                             NSRange pointRange = [textField.text rangeOfString:@"."];
                             NSUInteger length = range.location - pointRange.location;
                             if (length <= _maxDecimalDigits) {
-                                return YES;
+                                if (textField.text.length < textField.intercepter.maxInputLength) {
+                                    return YES;
+                                } else {
+                                    !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                                    return NO;
+                                }
                             } else {
                                 return NO;
                             }
@@ -155,21 +165,36 @@
                             // 首位是0不是.，不能再输入0
                             return NO;
                         } else {
-                            return YES;
+                            if (textField.text.length < textField.intercepter.maxInputLength) {
+                                return YES;
+                            } else {
+                                !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                                return NO;
+                            }
                         }
                     } else {
                         if (textField.hasDecimalPoint) {
                             NSRange pointRange = [textField.text rangeOfString:@"."];
                             NSUInteger length = range.location - pointRange.location;
                             if (length <= _maxDecimalDigits) {
-                                return YES;
+                                if (textField.text.length < textField.intercepter.maxInputLength) {
+                                    return YES;
+                                } else {
+                                    !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                                    return NO;
+                                }
                             } else {
                                 return NO;
                             }
                         } else if (!textField.hasDecimalPoint && textField.zeroAtHead) {
                             return NO;
                         } else {
-                            return YES;
+                            if (textField.text.length < textField.intercepter.maxInputLength) {
+                                return YES;
+                            } else {
+                                !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                                return NO;
+                            }
                         }
                     }
                 } else {

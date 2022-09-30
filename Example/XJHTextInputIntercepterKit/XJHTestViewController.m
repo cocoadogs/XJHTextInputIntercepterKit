@@ -78,15 +78,16 @@
         _textField.clearButtonMode = UITextFieldViewModeWhileEditing;
         _textField.returnKeyType = UIReturnKeyDone;
         XJHTextInputIntercepter *intercepter = [[XJHTextInputIntercepter alloc] init];
-//        intercepter.intercepterNumberType = XJHTextInputIntercepterNumberTypeDecimal;
-        intercepter.maxInputLength = 10;
+        intercepter.intercepterNumberType = XJHTextInputIntercepterNumberTypeDecimal;
+        intercepter.maxInputLength = 7;
+        intercepter.maxDecimalDigits = 3;
         intercepter.beyondBlock = ^(XJHTextInputIntercepter * _Nonnull intercepter, NSString * _Nonnull string) {
             NSLog(@"--- 超出最长长度了，结果 = %@ ---", string);
         };
         intercepter.inputBlock = ^(XJHTextInputIntercepter * _Nonnull intercepter, NSString * _Nonnull string) {
             NSLog(@"--- 输入结果 = %@ ---", string);
         };
-        [intercepter textInputView:_textField];
+        _textField.intercepter = intercepter;
     }
     return _textField;
 }

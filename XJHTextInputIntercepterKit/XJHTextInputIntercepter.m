@@ -11,51 +11,7 @@
 #import <XJHMultiProxyKit/NSObject+XJHMultiProxyAdditions.h>
 #import <objc/runtime.h>
 
-#pragma mark - UITextField Input Intercepter
-
-@implementation UITextField (XJHTextInputIntercepter)
-
-- (void)setIntercepter:(XJHTextInputIntercepter *)intercepter {
-    objc_setAssociatedObject(self, @selector(intercepter), intercepter, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-}
-
-- (XJHTextInputIntercepter *)intercepter {
-    return objc_getAssociatedObject(self, @selector(intercepter));
-}
-
-- (void)setHasDecimalPoint:(BOOL)hasDecimalPoint {
-    objc_setAssociatedObject(self, @selector(hasDecimalPoint), @(hasDecimalPoint), OBJC_ASSOCIATION_COPY_NONATOMIC);
-}
-
-- (BOOL)hasDecimalPoint {
-    return [objc_getAssociatedObject(self, @selector(hasDecimalPoint)) boolValue];
-}
-
-- (void)setZeroAtHead:(BOOL)zeroAtHead {
-    objc_setAssociatedObject(self, @selector(zeroAtHead), @(zeroAtHead), OBJC_ASSOCIATION_COPY_NONATOMIC);
-}
-
-- (BOOL)zeroAtHead {
-    return [objc_getAssociatedObject(self, @selector(zeroAtHead)) boolValue];
-}
-
-@end
-
-#pragma mark - UITextView Input Intercepter
-
-@implementation UITextView (XJHTextInputIntercepter)
-
-- (void)setIntercepter:(XJHTextInputIntercepter *)intercepter {
-    objc_setAssociatedObject(self, @selector(intercepter), intercepter, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-}
-
-- (XJHTextInputIntercepter *)intercepter {
-    return objc_getAssociatedObject(self, @selector(intercepter));
-}
-
-@end
-
-#pragma mark - XJHTextInputIntercepter Section
+#pragma mark - XJHTextInputIntercepter
 
 @interface XJHTextInputIntercepter ()
 
@@ -85,42 +41,6 @@
         _maxDecimalDigits = 2;
     }
     return self;
-}
-
-
-#pragma mark - Public Methods
-
-- (void)textInputView:(UIView *)textInputView {
-    [XJHTextInputIntercepter textInputView:textInputView setInputIntercepter:self];
-}
-
-+ (void)textInputView:(UIView *)textInputView setInputIntercepter:(XJHTextInputIntercepter *)intercepter {
-    if ([textInputView isKindOfClass:[UITextField class]]) {
-        UITextField *textField = (UITextField *)textInputView;
-        textField.intercepter = intercepter;
-        [[NSNotificationCenter defaultCenter] addObserver:intercepter selector:@selector(textInputDidChangeWithNotification:) name:UITextFieldTextDidChangeNotification object:textField];
-        [intercepter.dispatcher xjh_addDelegate:textField.delegate];
-        textField.delegate = intercepter.imp?:intercepter.internalImp;
-        intercepter.internalImp.textField = textField;
-        [intercepter.dispatcher xjh_addDelegate:textField.delegate];
-        intercepter.dispatcher.textField = textField;
-    } else if ([textInputView isKindOfClass:[UITextView class]]) {
-        UITextView *textView = (UITextView *)textInputView;
-        textView.intercepter = intercepter;
-        [[NSNotificationCenter defaultCenter] addObserver:intercepter selector:@selector(textInputDidChangeWithNotification:) name:UITextViewTextDidChangeNotification object:textView];
-        [intercepter.dispatcher xjh_addDelegate:textView.delegate];
-        textView.delegate = intercepter.imp?:intercepter.internalImp;
-        intercepter.internalImp.textView = textView;
-        [intercepter.dispatcher xjh_addDelegate:textView.delegate];
-        intercepter.dispatcher.textView = textView;
-    }
-}
-
-+ (XJHTextInputIntercepter *)textInputView:(UIView *)textInputView beyondBlock:(XJHTextInputIntercepterBlock)beyondBlock {
-    XJHTextInputIntercepter *intercepter = [[XJHTextInputIntercepter alloc] init];
-    intercepter.beyondBlock = [beyondBlock copy];
-    [self textInputView:textInputView setInputIntercepter:intercepter];
-    return intercepter;
 }
 
 #pragma mark - Notification Methods
@@ -180,3 +100,60 @@
 }
 
 @end
+
+#pragma mark - UITextField Input Intercepter
+
+@implementation UITextField (XJHTextInputIntercepter)
+
+- (void)setIntercepter:(XJHTextInputIntercepter *)intercepter {
+    [[NSNotificationCenter defaultCenter] addObserver:intercepter selector:@selector(textInputDidChangeWithNotification:) name:UITextFieldTextDidChangeNotification object:self];
+    [intercepter.dispatcher xjh_addDelegate:self.delegate];
+    self.delegate = intercepter.imp?:intercepter.internalImp;
+    intercepter.internalImp.textField = self;
+    [intercepter.dispatcher xjh_addDelegate:self.delegate];
+    intercepter.dispatcher.textField = self;
+    objc_setAssociatedObject(self, @selector(intercepter), intercepter, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (XJHTextInputIntercepter *)intercepter {
+    return objc_getAssociatedObject(self, @selector(intercepter));
+}
+
+- (void)setHasDecimalPoint:(BOOL)hasDecimalPoint {
+    objc_setAssociatedObject(self, @selector(hasDecimalPoint), @(hasDecimalPoint), OBJC_ASSOCIATION_COPY_NONATOMIC);
+}
+
+- (BOOL)hasDecimalPoint {
+    return [objc_getAssociatedObject(self, @selector(hasDecimalPoint)) boolValue];
+}
+
+- (void)setZeroAtHead:(BOOL)zeroAtHead {
+    objc_setAssociatedObject(self, @selector(zeroAtHead), @(zeroAtHead), OBJC_ASSOCIATION_COPY_NONATOMIC);
+}
+
+- (BOOL)zeroAtHead {
+    return [objc_getAssociatedObject(self, @selector(zeroAtHead)) boolValue];
+}
+
+@end
+
+#pragma mark - UITextView Input Intercepter
+
+@implementation UITextView (XJHTextInputIntercepter)
+
+- (void)setIntercepter:(XJHTextInputIntercepter *)intercepter {
+    [[NSNotificationCenter defaultCenter] addObserver:intercepter selector:@selector(textInputDidChangeWithNotification:) name:UITextViewTextDidChangeNotification object:self];
+    [intercepter.dispatcher xjh_addDelegate:self.delegate];
+    self.delegate = intercepter.imp?:intercepter.internalImp;
+    intercepter.internalImp.textView = self;
+    [intercepter.dispatcher xjh_addDelegate:self.delegate];
+    intercepter.dispatcher.textView = self;
+    objc_setAssociatedObject(self, @selector(intercepter), intercepter, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (XJHTextInputIntercepter *)intercepter {
+    return objc_getAssociatedObject(self, @selector(intercepter));
+}
+
+@end
+
