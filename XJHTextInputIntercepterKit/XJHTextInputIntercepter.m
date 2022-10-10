@@ -80,6 +80,21 @@
     }
 }
 
+- (void)setMaxInputLength:(NSUInteger)maxInputLength {
+    _maxInputLength = maxInputLength;
+    self.internalImp.maxInputLength = maxInputLength;
+}
+
+- (void)setMaxDecimalDigits:(NSUInteger)maxDecimalDigits {
+    _maxDecimalDigits = maxDecimalDigits;
+    self.internalImp.maxDecimalDigits = maxDecimalDigits;
+}
+
+- (void)setEmojiAccepted:(BOOL)emojiAccepted {
+    _emojiAccepted = emojiAccepted;
+    self.internalImp.emojiAccepted = emojiAccepted;
+}
+
 #pragma mark - Property Methods
 
 - (XJHTextInputIntercepterInternalImp *)internalImp {
