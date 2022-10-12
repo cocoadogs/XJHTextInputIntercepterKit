@@ -254,6 +254,9 @@
 				LastUpgradeCheck = 0720;
 				ORGANIZATIONNAME = cocoadogs;
 				TargetAttributes = {
+					6003F589195388D20070C39A = {
+						DevelopmentTeam = 4793525Q6T;
+					};
 					6003F5AD195388D20070C39A = {
 						TestTargetID = 6003F589195388D20070C39A;
 					};
@@ -508,6 +511,7 @@
 			baseConfigurationReference = 6C6F5C62C83DD6C8D1C1EC4A /* Pods-XJHTextInputIntercepterKit_Example.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = 4793525Q6T;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "XJHTextInputIntercepterKit/XJHTextInputIntercepterKit-Prefix.pch";
 				INFOPLIST_FILE = "XJHTextInputIntercepterKit/XJHTextInputIntercepterKit-Info.plist";
@@ -524,6 +528,7 @@
 			baseConfigurationReference = E2EADC14BA02D73C09A55C28 /* Pods-XJHTextInputIntercepterKit_Example.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = 4793525Q6T;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "XJHTextInputIntercepterKit/XJHTextInputIntercepterKit-Prefix.pch";
 				INFOPLIST_FILE = "XJHTextInputIntercepterKit/XJHTextInputIntercepterKit-Info.plist";

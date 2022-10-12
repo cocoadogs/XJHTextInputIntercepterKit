@@ -72,6 +72,7 @@
         _textField.delegate = self;
         _textField.textAlignment = NSTextAlignmentLeft;
         _textField.borderStyle = UITextBorderStyleLine;
+        _textField.keyboardType = UIKeyboardTypeDecimalPad;
         _textField.textColor = [UIColor blackColor];
         _textField.font = [UIFont systemFontOfSize:16 weight:UIFontWeightRegular];
         _textField.attributedPlaceholder = [[NSAttributedString alloc] initWithString:@"测试" attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:14 weight:UIFontWeightRegular], NSForegroundColorAttributeName:[UIColor grayColor]}];
@@ -79,8 +80,8 @@
         _textField.returnKeyType = UIReturnKeyDone;
         XJHTextInputIntercepter *intercepter = [[XJHTextInputIntercepter alloc] init];
         intercepter.intercepterNumberType = XJHTextInputIntercepterNumberTypeDecimal;
-        intercepter.maxInputLength = 7;
-        intercepter.maxDecimalDigits = 3;
+        intercepter.maxInputLength = 5;
+        intercepter.maxDecimalDigits = 1;
         intercepter.beyondBlock = ^(XJHTextInputIntercepter * _Nonnull intercepter, NSString * _Nonnull string) {
             NSLog(@"--- 超出最长长度了，结果 = %@ ---", string);
         };

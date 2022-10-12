@@ -90,28 +90,62 @@
     [self didEndEdting:textField];
 }
 
+- (void)trimHeadZeroes:(NSString *)string textField:(UITextField *)textField {
+    BOOL zeroAtHead = [string hasPrefix:@"0"];
+    while (zeroAtHead) {
+        //清除首位的数字0，此时需要注意如下情况 20.3->0.3：此时不需要再trim，200.3->00.3：此时需要trim
+        if (textField.hasDecimalPoint) {
+            if ([string componentsSeparatedByString:@"."].firstObject.length <= 1) {
+                zeroAtHead = NO;
+            } else {
+                string = [string stringByReplacingCharactersInRange:NSMakeRange(0, 1) withString:@""];
+                zeroAtHead = [string hasPrefix:@"0"];
+            }
+        } else {
+            string = [string stringByReplacingCharactersInRange:NSMakeRange(0, 1) withString:@""];
+            zeroAtHead = [string hasPrefix:@"0"];
+        }
+    }
+    textField.zeroAtHead = [string hasPrefix:@"0"];
+    textField.text = string;
+    
+//    !textField.intercepter.inputBlock?:textField.intercepter.inputBlock(textField.intercepter, [string stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+}
+
 - (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
     if ([string isEqualToString:@""] || [string isEqualToString:@"\n"]) {
+        //回删的时候如果当前类型为XJHTextInputIntercepterNumberTypeDecimal的时候需要重新判断是否有小数点和首位是否为0
+        XJHTextInputIntercepterNumberType type = textField.intercepter.intercepterNumberType;
+        if (type == XJHTextInputIntercepterNumberTypeDecimal) {
+            NSRange pointRange = [textField.text rangeOfString:@"."];
+            NSInteger length = range.location - pointRange.location;
+            if (pointRange.location == NSNotFound) {
+                textField.hasDecimalPoint = NO;
+            } else {
+                if (range.location == pointRange.location) {
+                    //往回删的刚好是小数点，此时需要把输入框中的数值往外传递，以便调用者调整数值大小判断逻辑
+                    textField.hasDecimalPoint = NO;
+                    NSString *str = [textField.text stringByReplacingCharactersInRange:range withString:@""];
+                    [self trimHeadZeroes:str textField:textField];
+                } else {
+                    textField.hasDecimalPoint = YES;
+                    NSString *remain = [textField.text stringByReplacingCharactersInRange:range withString:@""];
+                    [self trimHeadZeroes:remain textField:textField];
+                }
+            }
+//            if (textField.hasDecimalPoint && length < 0) {
+//                NSString *remain = [textField.text stringByReplacingCharactersInRange:range withString:@""];
+//                NSLog(@"====== 回删后剩下的字符串 = %@ ======", remain);
+//                NSString *test = [remain componentsSeparatedByString:@"."].firstObject;
+//                if ([test hasPrefix:@"0"]) {
+//                    textField.zeroAtHead = YES;
+//                }
+//            }
+        }
         return YES;
     }
     XJHTextInputIntercepterNumberType type = textField.intercepter.intercepterNumberType;
     switch (type) {
-        case XJHTextInputIntercepterNumberTypeNumerOnly: {
-            if (string.length > 0) {
-                unichar single = [string characterAtIndex:0];//当前输入的字符
-                if ('0' <= single && single <= '9') {
-                    if (textField.text.length < textField.intercepter.maxInputLength) {
-                        return YES;
-                    } else {
-                        !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
-                        return NO;
-                    }
-                } else {
-                    return NO;
-                }
-            }
-        }
-            break;
         case XJHTextInputIntercepterNumberTypeDecimal: {
             if ([textField.text rangeOfString:@"."].location == NSNotFound) {
                 textField.hasDecimalPoint = NO;
@@ -125,6 +159,7 @@
                 unichar single = [string characterAtIndex:0];//当前输入的字符
                 if (('0' <= single && single <= '9') || single == '.') {
                     if (textField.text.length == 0) {
+                        //输入框全新输入字符
                         if (single == '.') {
                             return NO;
                         }
@@ -134,6 +169,7 @@
                         }
                     }
                     
+                    //以下逻辑前提条件是输入框中原先已有内容
                     if (single == '.') {
                         if (!textField.hasDecimalPoint) {
                             textField.hasDecimalPoint = YES;
@@ -147,24 +183,63 @@
                             return NO;
                         }
                     } else if (single == '0') {
+                        //此时输入的字符为0
                         if ((textField.zeroAtHead && textField.hasDecimalPoint) || (!textField.zeroAtHead && textField.hasDecimalPoint)) {
                             // 0.01 or 10200.00
                             NSRange pointRange = [textField.text rangeOfString:@"."];
-                            NSUInteger length = range.location - pointRange.location;
-                            if (length <= _maxDecimalDigits) {
-                                if (textField.text.length < textField.intercepter.maxInputLength) {
-                                    return YES;
+                            NSInteger distance = range.location - pointRange.location;
+                            NSInteger digitsLength = [textField.text componentsSeparatedByString:@"."].lastObject.length;
+                            if (distance > 0) {
+                                //正向输入，正常判断即可
+                                if (digitsLength < _maxDecimalDigits) {
+                                    if (textField.text.length < textField.intercepter.maxInputLength) {
+                                        return YES;
+                                    } else {
+                                        !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                                        return NO;
+                                    }
                                 } else {
-                                    !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
                                     return NO;
                                 }
+                            } else if (distance == 0) {
+                                //移动光标插入位置等于之前内容中小数点的位置，也就是刚好插到小数点之前
+                                if (textField.zeroAtHead) {
+                                    // 首位是0不是.，不能再输入0
+                                    return NO;
+                                } else {
+                                    if (textField.text.length < textField.intercepter.maxInputLength) {
+                                        return YES;
+                                    } else {
+                                        !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                                        return NO;
+                                    }
+                                }
                             } else {
-                                return NO;
+                                //移动光标的插入位置远离了小数点，并且有可能到第一位了
+                                if (range.location == 0) {
+                                    //移动光标的插入位置此时就是在首位了，不能再输入0
+                                    return NO;
+                                } else {
+                                    if (textField.zeroAtHead) {
+                                        return NO;
+                                    } else {
+                                        if (textField.text.length < textField.intercepter.maxInputLength) {
+                                            return YES;
+                                        } else {
+                                            !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                                            return NO;
+                                        }
+                                    }
+                                }
                             }
                         } else if (!textField.hasDecimalPoint && textField.zeroAtHead) {
                             // 首位是0不是.，不能再输入0
                             return NO;
                         } else {
+                            if (range.location == 0) {
+                                // 输入框中原先的内容的首位不是0，此时需要查看输入光标插入的位置，在首位之前的话需要判断，0的话不允许输入了
+                                return NO;
+                            }
                             if (textField.text.length < textField.intercepter.maxInputLength) {
                                 return YES;
                             } else {
@@ -173,18 +248,38 @@
                             }
                         }
                     } else {
+                        //输入的是正常的数字1-9
                         if (textField.hasDecimalPoint) {
+                            //已经存在小数点，此时需要判断原先的内容中的小数位数
                             NSRange pointRange = [textField.text rangeOfString:@"."];
-                            NSUInteger length = range.location - pointRange.location;
-                            if (length <= _maxDecimalDigits) {
+                            NSInteger distance = range.location - pointRange.location;
+                            NSInteger digitsLength = [textField.text componentsSeparatedByString:@"."].lastObject.length;
+                            if (distance > 0) {
+                                //正向输入，正常判断即可
+                                if (digitsLength < _maxDecimalDigits) {
+                                    if (textField.text.length < textField.intercepter.maxInputLength) {
+                                        return YES;
+                                    } else {
+                                        !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                                        return NO;
+                                    }
+                                } else {
+                                    return NO;
+                                }
+                            } else if (distance == 0) {
+                                //移动光标插入位置等于之前内容中小数点的位置，也就是刚好插到小数点之前
                                 if (textField.text.length < textField.intercepter.maxInputLength) {
                                     return YES;
                                 } else {
-                                    !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
                                     return NO;
                                 }
                             } else {
-                                return NO;
+                                //移动光标的插入位置远离了小数点，并且有可能到第一位了
+                                if (textField.text.length < textField.intercepter.maxInputLength) {
+                                    return YES;
+                                } else {
+                                    return NO;
+                                }
                             }
                         } else if (!textField.hasDecimalPoint && textField.zeroAtHead) {
                             return NO;
@@ -196,6 +291,22 @@
                                 return NO;
                             }
                         }
+                    }
+                } else {
+                    return NO;
+                }
+            }
+        }
+            break;
+        case XJHTextInputIntercepterNumberTypeNumerOnly: {
+            if (string.length > 0) {
+                unichar single = [string characterAtIndex:0];//当前输入的字符
+                if ('0' <= single && single <= '9') {
+                    if (textField.text.length < textField.intercepter.maxInputLength) {
+                        return YES;
+                    } else {
+                        !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+                        return NO;
                     }
                 } else {
                     return NO;
