@@ -50,7 +50,7 @@
 #pragma mark - UITextFieldDelegate Methods
 
 - (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
-    NSLog(@"--- UITextField 输入 = %@ ---", string);
+    NSLog(@"--- UITextField 输入 = %@ ---", textField.text);
     return YES;
 }
 
@@ -69,7 +69,7 @@
 - (UITextField *)textField {
     if (!_textField) {
         _textField = [[UITextField alloc] init];
-        _textField.delegate = self;
+//        _textField.delegate = self;
         _textField.textAlignment = NSTextAlignmentLeft;
         _textField.borderStyle = UITextBorderStyleLine;
         _textField.keyboardType = UIKeyboardTypeDecimalPad;
