@@ -98,9 +98,10 @@
         return YES;
     }
     XJHTextInputIntercepterNumberType type = textField.intercepter.intercepterNumberType;
+    NSString *decimalSeparator = [NSLocale currentLocale].decimalSeparator;
     switch (type) {
         case XJHTextInputIntercepterNumberTypeDecimal: {
-            if ([textField.text rangeOfString:@"."].location == NSNotFound) {
+            if ([textField.text rangeOfString:decimalSeparator].location == NSNotFound) {
                 textField.hasDecimalPoint = NO;
             } else {
                 textField.hasDecimalPoint = YES;
@@ -110,10 +111,10 @@
             }
             if (string.length > 0) {
                 unichar single = [string characterAtIndex:0];//当前输入的字符
-                if (('0' <= single && single <= '9') || single == '.') {
+                if (('0' <= single && single <= '9') || single == [decimalSeparator characterAtIndex:0]) {
                     if (textField.text.length == 0) {
                         //输入框全新输入字符
-                        if (single == '.') {
+                        if (single == [decimalSeparator characterAtIndex:0]) {
                             return NO;
                         }
                         if (single == '0') {
@@ -123,7 +124,7 @@
                     }
                     
                     //以下逻辑前提条件是输入框中原先已有内容
-                    if (single == '.') {
+                    if (single == [decimalSeparator characterAtIndex:0]) {
                         if (!textField.hasDecimalPoint) {
                             textField.hasDecimalPoint = YES;
                             return textField.text.length < textField.intercepter.maxInputLength ?: ((void)(!textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "])), NO);
@@ -135,9 +136,9 @@
                         textField.zeroAtHead = [textField.text hasPrefix:@"0"];
                         if ((textField.zeroAtHead && textField.hasDecimalPoint) || (!textField.zeroAtHead && textField.hasDecimalPoint)) {
                             // 0.01 or 10200.00
-                            NSRange pointRange = [textField.text rangeOfString:@"."];
+                            NSRange pointRange = [textField.text rangeOfString:decimalSeparator];
                             NSInteger distance = range.location - pointRange.location;
-                            NSInteger digitsLength = [textField.text componentsSeparatedByString:@"."].lastObject.length;
+                            NSInteger digitsLength = [textField.text componentsSeparatedByString:decimalSeparator].lastObject.length;
                             if (distance > 0) {
                                 //正向输入，正常判断即可
                                 if (digitsLength < _maxDecimalDigits) {
@@ -181,9 +182,9 @@
                         textField.zeroAtHead = [textField.text hasPrefix:@"0"];
                         if (textField.hasDecimalPoint) {
                             //已经存在小数点，此时需要判断原先的内容中的小数位数
-                            NSRange pointRange = [textField.text rangeOfString:@"."];
+                            NSRange pointRange = [textField.text rangeOfString:decimalSeparator];
                             NSInteger distance = range.location - pointRange.location;
-                            NSInteger digitsLength = [textField.text componentsSeparatedByString:@"."].lastObject.length;
+                            NSInteger digitsLength = [textField.text componentsSeparatedByString:decimalSeparator].lastObject.length;
                             if (distance > 0) {
                                 //正向输入，正常判断即可
                                 if (digitsLength < _maxDecimalDigits) {
