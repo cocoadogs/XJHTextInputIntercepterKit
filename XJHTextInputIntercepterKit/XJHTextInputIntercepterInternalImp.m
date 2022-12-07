@@ -94,11 +94,19 @@
 }
 
 - (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
+    NSString *decimalSeparator = [NSLocale currentLocale].decimalSeparator;
     if ([string isEqualToString:@""] || [string isEqualToString:@"\n"]) {
+        if ([string isEqualToString:@""]) {
+            NSString *left = [textField.text substringToIndex:range.location];
+            if ([left rangeOfString:decimalSeparator].location == NSNotFound) {
+                textField.hasDecimalPoint = NO;
+            } else {
+                textField.hasDecimalPoint = YES;
+            }
+        }
         return YES;
     }
     XJHTextInputIntercepterNumberType type = textField.intercepter.intercepterNumberType;
-    NSString *decimalSeparator = [NSLocale currentLocale].decimalSeparator;
     switch (type) {
         case XJHTextInputIntercepterNumberTypeDecimal: {
             if ([textField.text rangeOfString:decimalSeparator].location == NSNotFound) {

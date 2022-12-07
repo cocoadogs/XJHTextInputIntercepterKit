@@ -27,7 +27,9 @@
     if (self.xjh_multiProxy.allExceptLastDelegate.count == 1) {
         id<UITextFieldDelegate> lastDelegate = self.xjh_multiProxy.lastDelegate;
         id<UITextFieldDelegate> firstDelegate = self.xjh_multiProxy.firstDelegate;
-        [firstDelegate textField:textField shouldChangeCharactersInRange:range replacementString:string];
+        if ([firstDelegate respondsToSelector:@selector(textField:shouldChangeCharactersInRange:replacementString:)]) {
+            [firstDelegate textField:textField shouldChangeCharactersInRange:range replacementString:string];
+        }
         return [lastDelegate textField:textField shouldChangeCharactersInRange:range replacementString:string];
     }
     [XJHProxyExceptLast(UITextFieldDelegate) textField:textField shouldChangeCharactersInRange:range replacementString:string];
