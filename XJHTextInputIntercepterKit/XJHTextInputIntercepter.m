@@ -35,7 +35,6 @@
 {
     self = [super init];
     if (self) {
-        _emojiAccepted = NO;
         _maxInputLength = UINT_MAX;
         _doubleBytePerChineseCharacter = NO;
         _maxDecimalDigits = 2;
@@ -90,10 +89,6 @@
     self.internalImp.maxDecimalDigits = maxDecimalDigits;
 }
 
-- (void)setEmojiAccepted:(BOOL)emojiAccepted {
-    _emojiAccepted = emojiAccepted;
-    self.internalImp.emojiAccepted = emojiAccepted;
-}
 
 #pragma mark - Property Methods
 
@@ -103,7 +98,6 @@
     }
     _internalImp.maxInputLength = _maxInputLength;
     _internalImp.maxDecimalDigits = _maxDecimalDigits;
-    _internalImp.emojiAccepted = _emojiAccepted;
     return _internalImp;
 }
 

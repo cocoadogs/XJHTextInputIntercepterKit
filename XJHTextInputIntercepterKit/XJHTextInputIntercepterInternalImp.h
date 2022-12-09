@@ -18,10 +18,6 @@ NS_ASSUME_NONNULL_BEGIN
 /// 小数位数，默认两位
 @property (nonatomic, assign) NSUInteger maxDecimalDigits;
 
-/// 是否允许输入emoji表情
-@property (nonatomic, assign) BOOL emojiAccepted;
-
-
 @property (nonatomic, weak) UITextField *textField;
 
 @property (nonatomic, weak) UITextView *textView;

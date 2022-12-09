@@ -8,70 +8,6 @@
 #import "XJHTextInputIntercepterInternalImp.h"
 #import "XJHTextInputIntercepter.h"
 
-#pragma mark - NSString Emoji
-
-@interface NSString (XJHTextInputStringEmoji)
-
-+ (BOOL)xjh_stringContainsEmoji:(NSString *)string;
-
-@end
-
-@implementation NSString (XJHTextInputStringType)
-
-+ (BOOL)xjh_stringContainsEmoji:(NSString *)string {
-    __block BOOL returnValue = NO;
-    if (string.length > 0) {
-        if ([self xjh_stringContainsEmojiByUTF8Length:string]) {
-            returnValue = YES;
-        } else {
-            [string enumerateSubstringsInRange:NSMakeRange(0, [string length]) options:NSStringEnumerationByComposedCharacterSequences usingBlock:
-             ^(NSString *substring, NSRange substringRange, NSRange enclosingRange, BOOL *stop){
-                 const unichar hs = [substring characterAtIndex:0];
-                 // surrogate pair
-                 if (0xd800 <= hs && hs <= 0xdbff){
-                     if (substring.length > 1){
-                         const unichar ls = [substring characterAtIndex:1];
-                         const int uc = ((hs - 0xd800) * 0x400) + (ls - 0xdc00) + 0x10000;
-                         if (0x1d000 <= uc && uc <= 0x1f77f){
-                             returnValue = YES;
-                         }
-                     }
-                 }
-                 else if (substring.length > 1){
-                     const unichar ls = [substring characterAtIndex:1];
-                     if (ls == 0x20e3 || ls == 0xfe0f){
-                         returnValue = YES;
-                     }
-                 }else{
-                     // non surrogate
-                     if (0x2100 <= hs && hs <= 0x27ff){
-                         returnValue = YES;
-                     }else if (0x2B05 <= hs && hs <= 0x2b07){
-                         returnValue = YES;
-                     }else if (0x2934 <= hs && hs <= 0x2935){
-                         returnValue = YES;
-                     }else if (0x3297 <= hs && hs <= 0x3299){
-                         returnValue = YES;
-                     }
-                     else if (hs == 0xa9 || hs == 0xae || hs == 0x303d || hs == 0x3030 || hs == 0x2b55 || hs == 0x2b1c || hs == 0x2b1b || hs == 0x2b50){
-                         returnValue = YES;
-                     }
-                 }
-            }];
-        }
-    }
-    return returnValue;
-}
-
-+ (BOOL)xjh_stringContainsEmojiByUTF8Length:(NSString *)string {
-    NSUInteger stringUtf8Length = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-    if (stringUtf8Length >= 4 && (stringUtf8Length / string.length != 3)) {
-        return YES;
-    }
-    return NO;
-}
-
-@end
 
 @implementation XJHTextInputIntercepterInternalImp
 
@@ -324,45 +260,17 @@
         UITextPosition *position = [inputView positionFromPosition:markedRange.start offset:0];
         if (!position) {
             // 没有高亮选择的字，则对已输入的文字进行字数统计和限制
-            if (intercepter.isEmojiAccepted) {
-                return [self shouldChangeInputString:string range:nil intercepter:intercepter inputView:inputView];
-            } else {
-                if ([NSString xjh_stringContainsEmoji:string]) {
-                    return NO;
-                } else {
-                    return [self shouldChangeInputString:string range:nil intercepter:intercepter inputView:inputView];
-                }
-            }
+            return [self shouldChangeInputString:string range:nil intercepter:intercepter inputView:inputView];
         } else {
             UITextRange *startRange= [inputView textRangeFromPosition:inputView.beginningOfDocument toPosition:markedRange.start];
-            if (intercepter.isEmojiAccepted) {
-                if ([self canContinuesInRange:startRange intercepter:intercepter inputView:inputView]) {
-                    return [self shouldChangeInputString:string range:startRange intercepter:intercepter inputView:inputView];
-                } else {
-                    return NO;
-                }
+            if ([self canContinuesInRange:startRange intercepter:intercepter inputView:inputView]) {
+                return [self shouldChangeInputString:string range:startRange intercepter:intercepter inputView:inputView];
             } else {
-                if ([NSString xjh_stringContainsEmoji:string]) {
-                    return NO;
-                } else {
-                    if ([self canContinuesInRange:startRange intercepter:intercepter inputView:inputView]) {
-                        return [self shouldChangeInputString:string range:startRange intercepter:intercepter inputView:inputView];
-                    } else {
-                        return NO;
-                    }
-                }
+                return NO;
             }
         }
     } else {
-        if (intercepter.isEmojiAccepted) {
-            return [self shouldChangeInputString:string range:nil intercepter:intercepter inputView:inputView];
-        } else {
-            if ([NSString xjh_stringContainsEmoji:string]) {
-                return NO;
-            } else {
-                return [self shouldChangeInputString:string range:nil intercepter:intercepter inputView:inputView];
-            }
-        }
+        return [self shouldChangeInputString:string range:nil intercepter:intercepter inputView:inputView];
     }
     return YES;
 }
@@ -421,38 +329,20 @@
 - (NSString *)processingTextWithInputString:(NSString *)string intercepter:(XJHTextInputIntercepter *)intercepter {
     NSUInteger acceptLength = intercepter.maxInputLength;
     if (intercepter.isDoubleBytePerChineseCharacter) {
-        if (intercepter.isEmojiAccepted) {
-            // 调用 UTF8 编码处理 一个字符一个字节 一个汉字3个字节 一个表情4个字节
-            NSUInteger textBytesLength = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-            if (textBytesLength > acceptLength) {
-                NSRange range;
-                NSUInteger byteLength = 0;
-                NSString *text = string;
-                for (NSUInteger i = 0; i < string.length && byteLength <= acceptLength; i+= range.length) {
-                    range = [string rangeOfComposedCharacterSequenceAtIndex:i];
-                    byteLength += strlen([[text substringWithRange:range] UTF8String]);
-                    if (byteLength > acceptLength) {
-                        NSString *mText = [text substringWithRange:NSMakeRange(0, range.location)];
-                        string = mText;
-                    }
+        NSUInteger textBytesLength = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+        if (textBytesLength > acceptLength) {
+            NSRange range;
+            NSUInteger byteLength = 0;
+            NSString *text = string;
+            for (NSUInteger i = 0; i < string.length && byteLength <= acceptLength; i+= range.length) {
+                range = [string rangeOfComposedCharacterSequenceAtIndex:i];
+                byteLength += strlen([[text substringWithRange:range] UTF8String]);
+                if (byteLength > acceptLength) {
+                    NSString *mText = [text substringWithRange:NSMakeRange(0, range.location)];
+                    string = mText;
                 }
-                !intercepter.beyondBlock?:intercepter.beyondBlock(intercepter, [string stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
             }
-        } else {
-            // 不允许输入表情 一个字符一个字节 一个汉字2个字节
-            NSStringEncoding encoding = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingGB_18030_2000);
-            NSData *data = [string dataUsingEncoding:encoding];
-            NSUInteger length = [data length];
-            if (length > acceptLength) {
-                NSData *subdata = [data subdataWithRange:NSMakeRange(0, acceptLength)];
-                NSString *content = [[NSString alloc] initWithData:subdata encoding:encoding];//注意：当截取CharacterCount长度字符时把中文字符截断返回的content会是nil
-                if (!content || content.length == 0) {
-                    subdata = [data subdataWithRange:NSMakeRange(0, acceptLength - 1)];
-                    content =  [[NSString alloc] initWithData:subdata encoding:encoding];
-                }
-                !intercepter.beyondBlock?:intercepter.beyondBlock(intercepter, [content stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
-                string = content;
-            }
+            !intercepter.beyondBlock?:intercepter.beyondBlock(intercepter, [string stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
         }
     } else {
         if (string.length > acceptLength) {
@@ -471,17 +361,7 @@
 
 - (NSUInteger)actualLengthForString:(NSString *)string intercepter:(XJHTextInputIntercepter *)intercepter {
     if (intercepter.isDoubleBytePerChineseCharacter) {
-        if (intercepter.isEmojiAccepted) {
-            // 调用 UTF8 编码处理 一个字符一个字节 一个汉字3个字节 一个表情4个字节
-            NSUInteger textBytesLength = [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
-            return textBytesLength;
-        } else {
-            // 不允许输入表情 一个字符一个字节 一个汉字2个字节
-            NSStringEncoding encoding = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingGB_18030_2000);
-            NSData *data = [string dataUsingEncoding:encoding];
-            NSUInteger length = [data length];
-            return length;
-        }
+        return [string lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
     }
     return string.length;
 }

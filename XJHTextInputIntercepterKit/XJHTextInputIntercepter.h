@@ -38,9 +38,6 @@ typedef NS_ENUM(NSUInteger, XJHTextInputIntercepterNumberType) {
 /// 输入超限回调
 @property (nonatomic, copy) XJHTextInputIntercepterBlock beyondBlock;
 
-/// 是否允许输入emoji表情
-@property (nonatomic, assign, getter=isEmojiAccepted) BOOL emojiAccepted;
-
 /// 拦截类型
 /* XJHTextInputIntercepterNumberTypeNone 默认
  * XJHTextInputIntercepterNumberTypeNumerOnly 只允许输入数字，emojiAccepted、maxDecimalDigits不起作用
