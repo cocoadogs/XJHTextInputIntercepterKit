@@ -100,9 +100,12 @@
 #pragma mark - UITextViewDelegate Methods
 
 - (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text {
-    [XJHProxy(UITextViewDelegate) textView:textView shouldChangeTextInRange:range replacementText:text];
-    id<UITextViewDelegate> lastDelegate = self.xjh_multiProxy.lastDelegate;
-    return [lastDelegate textView:textView shouldChangeTextInRange:range replacementText:text];
+    [XJHProxyExceptFirst(UITextViewDelegate) textView:textView shouldChangeTextInRange:range replacementText:text];
+    id<UITextViewDelegate> firstDelegate = self.xjh_multiProxy.firstDelegate;
+    if ([firstDelegate respondsToSelector:@selector(textView:shouldChangeTextInRange:replacementText:)]) {
+        return [firstDelegate textView:textView shouldChangeTextInRange:range replacementText:text];
+    }
+    return YES;
 }
 
 - (BOOL)textViewShouldBeginEditing:(UITextView *)textView {

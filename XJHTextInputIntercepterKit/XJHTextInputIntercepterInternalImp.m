@@ -177,8 +177,6 @@
         default: {
             if ([string isEqualToString:@" "]) {
                 return [self handleWhiteSpace:string range:range intputView:textField responder:textField];
-            } else {
-                return [self outterShouldChangeInputString:string intercepter:textField.intercepter inputView:textField responder:textField];
             }
         }
             break;
@@ -188,33 +186,6 @@
 
 
 #pragma mark - UITextViewDelegate Methods
-
-- (void)textViewDidEndEditing:(UITextView *)textView {
-    NSString *origin = textView.text;
-    NSString *string = [self processingTextWithInputString:origin intercepter:textView.intercepter];
-    if ([origin isEqualToString:string]) {
-        !textView.intercepter.inputBlock?:textView.intercepter.inputBlock(textView.intercepter, [string stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
-    }
-    textView.text = string;
-}
-
-- (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text {
-    if ([text isEqualToString:@""]) {
-        return YES;
-    }
-    if ([text isEqualToString:@"\n"]) {
-        [textView resignFirstResponder];
-        // 此处将值传送出去
-//        !textView.intercepter.inputBlock?:textView.intercepter.inputBlock(textView.intercepter, [textView.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
-        return NO;
-    }
-    if ([text isEqualToString:@" "]) {
-        return [self handleWhiteSpace:text range:range intputView:textView responder:textView];
-    } else {
-        return [self outterShouldChangeInputString:text intercepter:textView.intercepter inputView:textView responder:textView];
-    }
-    return YES;
-}
 
 #pragma mark - Private Methods
 
@@ -228,98 +199,13 @@
 }
 
 - (BOOL)handleWhiteSpace:(NSString *)whiteSpace range:(NSRange)range intputView:(id<UITextInput>)inputView responder:(UIResponder *)responder {
-    /* 在输入单个字符或者粘贴内容时做如下处理，已确定光标应该停留的正确位置，
-    没有下段从字符中间插入或者粘贴光标位置会出错 */
-    // 首先使用 non-breaking space 代替默认输入的@“ ”空格
-    whiteSpace = [whiteSpace stringByReplacingOccurrencesOfString:@" " withString:@"\u00a0"];
     if ([responder isKindOfClass:[UITextField class]]) {
         UITextField *textField = (UITextField *)responder;
-        textField.text = [textField.text stringByReplacingCharactersInRange:range withString:whiteSpace];
+        return textField.text.length < _maxInputLength;
     }
     if ([responder isKindOfClass:[UITextView class]]) {
         UITextView *textView = (UITextView *)responder;
-        textView.text = [textView.text stringByReplacingCharactersInRange:range withString:whiteSpace];
-    }
-    //确定输入或者粘贴字符后光标位置
-    UITextPosition *beginning = inputView.beginningOfDocument;
-    UITextPosition *cursorLoc = [inputView positionFromPosition:beginning
-                                 offset:range.location+whiteSpace.length];
-    // 选中文本起使位置和结束为止设置同一位置
-    UITextRange *textRange = [inputView textRangeFromPosition:cursorLoc
-                                        toPosition:cursorLoc];
-    // 选中字符范围（由于textRange范围的起始结束位置一样所以并没有选中字符）
-    [inputView setSelectedTextRange:textRange];
-    return NO;
-}
-
-
-- (BOOL)outterShouldChangeInputString:(NSString *)string intercepter:(XJHTextInputIntercepter *)intercepter inputView:(id<UITextInput>)inputView responder:(UIResponder *)responder {
-    if ([[responder.textInputMode primaryLanguage] isEqualToString:@"zh-Hans"]) {
-        UITextRange *markedRange = [inputView markedTextRange];
-        //获取高亮部分
-        UITextPosition *position = [inputView positionFromPosition:markedRange.start offset:0];
-        if (!position) {
-            // 没有高亮选择的字，则对已输入的文字进行字数统计和限制
-            return [self shouldChangeInputString:string range:nil intercepter:intercepter inputView:inputView];
-        } else {
-            UITextRange *startRange= [inputView textRangeFromPosition:inputView.beginningOfDocument toPosition:markedRange.start];
-            if ([self canContinuesInRange:startRange intercepter:intercepter inputView:inputView]) {
-                return [self shouldChangeInputString:string range:startRange intercepter:intercepter inputView:inputView];
-            } else {
-                return NO;
-            }
-        }
-    } else {
-        return [self shouldChangeInputString:string range:nil intercepter:intercepter inputView:inputView];
-    }
-    return YES;
-}
-
-
-/// 判断输入字符串是否符合要求
-/// @param string 输入字符串
-/// @param range 已输入到输入框的文字的range
-/// @param intercepter 拦截器
-/// @param inputView 输入控件
-- (BOOL)shouldChangeInputString:(NSString *)string range:(UITextRange *)range intercepter:(XJHTextInputIntercepter *)intercepter inputView:(id<UITextInput>)inputView {
-    if (range) {
-        // 处于高亮的中文输入法状态
-        NSUInteger alreadyLength = [self actualLengthForString:[inputView textInRange:range] intercepter:intercepter];
-        return alreadyLength < intercepter.maxInputLength;
-    } else {
-        NSString *existString = [inputView textInRange:[inputView textRangeFromPosition:inputView.beginningOfDocument toPosition:inputView.endOfDocument]];
-        NSUInteger existLength = [self actualLengthForString:existString intercepter:intercepter];
-        if (existLength < intercepter.maxInputLength) {
-            NSUInteger appendLength = [self actualLengthForString:string intercepter:intercepter];
-            if (existLength + appendLength <= intercepter.maxInputLength) {
-                return YES;
-            } else {
-                !intercepter.beyondBlock?:intercepter.beyondBlock(intercepter, [existString stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
-                return NO;
-            }
-        } else {
-            !intercepter.beyondBlock?:intercepter.beyondBlock(intercepter, [existString stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
-            return NO;
-        }
-    }
-    return YES;
-}
-
-/// 高亮输入状态是否还可以继续输入
-/// @param range 高亮选中的之前位置的字符串范围
-/// @param intercepter 拦截器
-/// @param inputView 输入控件
-- (BOOL)canContinuesInRange:(UITextRange *)range intercepter:(XJHTextInputIntercepter *)intercepter inputView:(id<UITextInput>)inputView {
-    NSString *origin = [inputView textInRange:range];
-    NSString *content = [self processingTextWithInputString:origin intercepter:intercepter];
-    if (![origin isEqualToString:content]) {
-        if ([inputView isKindOfClass:[UITextField class]]) {
-            ((UITextField *)inputView).text = content;
-        }
-        if ([inputView isKindOfClass:[UITextView class]]) {
-            ((UITextView *)inputView).text = content;
-        }
-        return NO;
+        return textView.text.length < _maxInputLength;
     }
     return YES;
 }

@@ -72,21 +72,26 @@
 //        _textField.delegate = self;
         _textField.textAlignment = NSTextAlignmentLeft;
         _textField.borderStyle = UITextBorderStyleLine;
-        _textField.keyboardType = UIKeyboardTypeDecimalPad;
+//        _textField.keyboardType = UIKeyboardTypeDecimalPad;
         _textField.textColor = [UIColor blackColor];
         _textField.font = [UIFont systemFontOfSize:16 weight:UIFontWeightRegular];
         _textField.attributedPlaceholder = [[NSAttributedString alloc] initWithString:@"测试" attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:14 weight:UIFontWeightRegular], NSForegroundColorAttributeName:[UIColor grayColor]}];
         _textField.clearButtonMode = UITextFieldViewModeWhileEditing;
         _textField.returnKeyType = UIReturnKeyDone;
         XJHTextInputIntercepter *intercepter = [[XJHTextInputIntercepter alloc] init];
-        intercepter.intercepterNumberType = XJHTextInputIntercepterNumberTypeDecimal;
-        intercepter.maxInputLength = 5;
-        intercepter.maxDecimalDigits = 1;
+        
+//        intercepter.intercepterNumberType = XJHTextInputIntercepterNumberTypeDecimal;
+//        intercepter.maxInputLength = 5;
+//        intercepter.maxDecimalDigits = 1;
+        
+        intercepter.intercepterNumberType = XJHTextInputIntercepterNumberTypeNone;
+        intercepter.maxInputLength = 10;
+        
         intercepter.beyondBlock = ^(XJHTextInputIntercepter * _Nonnull intercepter, NSString * _Nonnull string) {
-            NSLog(@"--- 超出最长长度了，结果 = %@ ---", string);
+            NSLog(@"--- textField超出最长长度了，结果 = %@ ---", string);
         };
         intercepter.inputBlock = ^(XJHTextInputIntercepter * _Nonnull intercepter, NSString * _Nonnull string) {
-            NSLog(@"--- 输入结果 = %@ ---", string);
+            NSLog(@"--- textField输入结果 = %@ ---", string);
         };
         _textField.intercepter = intercepter;
     }

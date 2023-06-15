@@ -62,10 +62,10 @@
         XJHTextInputIntercepter *intercepter = [[XJHTextInputIntercepter alloc] init];
         intercepter.maxInputLength = 10;
         intercepter.beyondBlock = ^(XJHTextInputIntercepter * _Nonnull intercepter, NSString * _Nonnull string) {
-            NSLog(@"--- 超出最长长度了，结果 = %@ ---", string);
+            NSLog(@"--- textView超出最长长度了，结果 = %@ ---", string);
         };
         intercepter.inputBlock = ^(XJHTextInputIntercepter * _Nonnull intercepter, NSString * _Nonnull string) {
-            NSLog(@"--- 输入结果 = %@ ---", string);
+            NSLog(@"--- textView输入结果 = %@ ---", string);
         };
         _textView.intercepter = intercepter;
 //        [intercepter textInputView:_textView];

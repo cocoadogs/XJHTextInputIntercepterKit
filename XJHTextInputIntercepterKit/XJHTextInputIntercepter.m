@@ -48,21 +48,36 @@
     if (![((UIView *)noti.object) isFirstResponder]) {
         return;
     }
-    
-    BOOL textFieldTextDidChange = [noti.name isEqualToString:UITextFieldTextDidChangeNotification] &&
-    [noti.object isKindOfClass:[UITextField class]];
     BOOL textViewTextDidChange = [noti.name isEqualToString:UITextViewTextDidChangeNotification] &&
     [noti.object isKindOfClass:[UITextView class]];
-    if (!textFieldTextDidChange && !textViewTextDidChange) {
+    if (!textViewTextDidChange) {
         return;
     }
-    
-    if ([noti.name isEqualToString:UITextFieldTextDidChangeNotification]) {
-        UITextField *textField = (UITextField *)noti.object;
-        !textField.intercepter.inputBlock?:textField.intercepter.inputBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
-    } else if ([noti.name isEqualToString:UITextViewTextDidChangeNotification]) {
+    if ([noti.name isEqualToString:UITextViewTextDidChangeNotification]) {
         UITextView *textView = (UITextView *)noti.object;
-        !textView.intercepter.inputBlock?:textView.intercepter.inputBlock(textView.intercepter, [textView.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+        UITextRange *selectedRange = [textView markedTextRange];
+        UITextPosition *position = [textView positionFromPosition:selectedRange.start offset:0];
+        if (!position) {
+            if (textView.text.length > _maxInputLength) {
+                textView.text = [textView.text substringToIndex:_maxInputLength];
+                !textView.intercepter.beyondBlock?:textView.intercepter.beyondBlock(textView.intercepter, [textView.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+            } else {
+                !textView.intercepter.inputBlock?:textView.intercepter.inputBlock(textView.intercepter, [textView.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+            }
+        }
+    }
+}
+
+- (void)textFieldEditingChanged:(UITextField *)textField {
+    UITextRange *selectedRange = [textField markedTextRange];
+    UITextPosition *position = [textField positionFromPosition:selectedRange.start offset:0];
+    if (!position) {
+        if (textField.text.length > _maxInputLength) {
+            textField.text = [textField.text substringToIndex:_maxInputLength];
+            !textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+        } else {
+            !textField.intercepter.inputBlock?:textField.intercepter.inputBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "]);
+        }
     }
 }
 
@@ -115,7 +130,7 @@
 @implementation UITextField (XJHTextInputIntercepter)
 
 - (void)setIntercepter:(XJHTextInputIntercepter *)intercepter {
-    [[NSNotificationCenter defaultCenter] addObserver:intercepter selector:@selector(textInputDidChangeWithNotification:) name:UITextFieldTextDidChangeNotification object:self];
+    [self addTarget:intercepter action:@selector(textFieldEditingChanged:) forControlEvents:UIControlEventEditingChanged];
     [intercepter.dispatcher xjh_addDelegate:self.delegate];
     self.delegate = intercepter.imp?:intercepter.internalImp;
     intercepter.internalImp.textField = self;
