@@ -8,7 +8,6 @@
 #import "XJHTextInputIntercepterInternalImp.h"
 #import "XJHTextInputIntercepter.h"
 
-
 @implementation XJHTextInputIntercepterInternalImp
 
 - (void)dealloc
@@ -31,10 +30,11 @@
 
 - (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
     NSString *decimalSeparator = [NSLocale currentLocale].decimalSeparator;
+    NSString *englishSeparator = @".";
     if ([string isEqualToString:@""] || [string isEqualToString:@"\n"]) {
         if ([string isEqualToString:@""]) {
             NSString *left = [textField.text substringToIndex:range.location];
-            if ([left rangeOfString:decimalSeparator].location == NSNotFound) {
+            if ([left rangeOfString:decimalSeparator].location == NSNotFound && [left rangeOfString:englishSeparator].location == NSNotFound) {
                 textField.hasDecimalPoint = NO;
             } else {
                 textField.hasDecimalPoint = YES;
@@ -45,44 +45,51 @@
     XJHTextInputIntercepterNumberType type = textField.intercepter.intercepterNumberType;
     switch (type) {
         case XJHTextInputIntercepterNumberTypeDecimal: {
-            if ([textField.text rangeOfString:decimalSeparator].location == NSNotFound) {
+            if ([textField.text rangeOfString:decimalSeparator].location == NSNotFound && [textField.text rangeOfString:englishSeparator].location == NSNotFound) {
                 textField.hasDecimalPoint = NO;
             } else {
                 textField.hasDecimalPoint = YES;
             }
-            if ([textField.text rangeOfString:@"0"].location == NSNotFound) {
-                textField.zeroAtHead = NO;
-            }
+            textField.zeroAtHead = ({
+                BOOL isZeroAtHead = textField.text.length == 0 ? NO :YES;
+                if (isZeroAtHead) {
+                    NSString *firstCharString = [textField.text substringWithRange:NSMakeRange(0, 1)];
+                    isZeroAtHead = [[NSScanner scannerWithString:firstCharString] scanInt:NULL] ? (firstCharString.intValue == 0) : NO;
+                }
+                isZeroAtHead;
+            });
             if (string.length > 0) {
-                unichar single = [string characterAtIndex:0];//当前输入的字符
-                if (('0' <= single && single <= '9') || single == [decimalSeparator characterAtIndex:0]) {
+                BOOL isNumber = [[NSScanner scannerWithString:string] scanInt:NULL];
+                BOOL isSeperator = [string isEqualToString:decimalSeparator] || [string isEqualToString:englishSeparator];
+                if (!isNumber && !isSeperator) {
+                    return NO;
+                } else {
                     if (textField.text.length == 0) {
                         //输入框全新输入字符
-                        if (single == [decimalSeparator characterAtIndex:0]) {
+                        if (isSeperator) {
                             return NO;
                         }
-                        if (single == '0') {
+                        if (string.intValue == 0) {
                             textField.zeroAtHead = YES;
                             return YES;
                         }
                     }
-                    
                     //以下逻辑前提条件是输入框中原先已有内容
-                    if (single == [decimalSeparator characterAtIndex:0]) {
+                    if (isSeperator) {
                         if (!textField.hasDecimalPoint) {
                             textField.hasDecimalPoint = YES;
                             return textField.text.length < textField.intercepter.maxInputLength ?: ((void)(!textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "])), NO);
                         } else {
                             return ((void)(!textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "])), NO);
                         }
-                    } else if (single == '0') {
+                    } else if (string.intValue == 0) {
                         //此时输入的字符为0
-                        textField.zeroAtHead = [textField.text hasPrefix:@"0"];
                         if ((textField.zeroAtHead && textField.hasDecimalPoint) || (!textField.zeroAtHead && textField.hasDecimalPoint)) {
                             // 0.01 or 10200.00
-                            NSRange pointRange = [textField.text rangeOfString:decimalSeparator];
+                            BOOL isCurrentSeparatorFound = ([textField.text rangeOfString:decimalSeparator].location != NSNotFound);
+                            NSRange pointRange = isCurrentSeparatorFound ? [textField.text rangeOfString:decimalSeparator] : [textField.text rangeOfString:englishSeparator];
                             NSInteger distance = range.location - pointRange.location;
-                            NSInteger digitsLength = [textField.text componentsSeparatedByString:decimalSeparator].lastObject.length;
+                            NSInteger digitsLength = isCurrentSeparatorFound ? [textField.text componentsSeparatedByString:decimalSeparator].lastObject.length : [textField.text componentsSeparatedByString:englishSeparator].lastObject.length;
                             if (distance > 0) {
                                 //正向输入，正常判断即可
                                 if (digitsLength < _maxDecimalDigits) {
@@ -123,12 +130,12 @@
                         }
                     } else {
                         //输入的是正常的数字1-9
-                        textField.zeroAtHead = [textField.text hasPrefix:@"0"];
                         if (textField.hasDecimalPoint) {
                             //已经存在小数点，此时需要判断原先的内容中的小数位数
-                            NSRange pointRange = [textField.text rangeOfString:decimalSeparator];
+                            BOOL isCurrentSeparatorFound = ([textField.text rangeOfString:decimalSeparator].location != NSNotFound);
+                            NSRange pointRange = isCurrentSeparatorFound ? [textField.text rangeOfString:decimalSeparator] : [textField.text rangeOfString:englishSeparator];
                             NSInteger distance = range.location - pointRange.location;
-                            NSInteger digitsLength = [textField.text componentsSeparatedByString:decimalSeparator].lastObject.length;
+                            NSInteger digitsLength = isCurrentSeparatorFound ? [textField.text componentsSeparatedByString:decimalSeparator].lastObject.length : [textField.text componentsSeparatedByString:englishSeparator].lastObject.length;
                             if (distance > 0) {
                                 //正向输入，正常判断即可
                                 if (digitsLength < _maxDecimalDigits) {
@@ -148,7 +155,6 @@
                                 return textField.text.length < textField.intercepter.maxInputLength ?: ((void)(!textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "])), NO);
                             }
                         } else if (!textField.hasDecimalPoint && textField.zeroAtHead) {
-                            
                             if (range.location == 0) {
                                 return textField.text.length < textField.intercepter.maxInputLength ?: ((void)(!textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "])), NO);
                             }
@@ -157,19 +163,17 @@
                             return textField.text.length < textField.intercepter.maxInputLength ?: ((void)(!textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "])), NO);
                         }
                     }
-                } else {
-                    return NO;
                 }
             }
         }
             break;
         case XJHTextInputIntercepterNumberTypeNumerOnly: {
             if (string.length > 0) {
-                unichar single = [string characterAtIndex:0];//当前输入的字符
-                if ('0' <= single && single <= '9') {
-                    return textField.text.length < textField.intercepter.maxInputLength ?: ((void)(!textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "])), NO);
-                } else {
+                BOOL isNumber = [[NSScanner scannerWithString:string] scanInt:NULL];
+                if (!isNumber) {
                     return NO;
+                } else {
+                    return textField.text.length < textField.intercepter.maxInputLength ?: ((void)(!textField.intercepter.beyondBlock?:textField.intercepter.beyondBlock(textField.intercepter, [textField.text stringByReplacingOccurrencesOfString:@"\u00a0" withString:@" "])), NO);
                 }
             }
         }

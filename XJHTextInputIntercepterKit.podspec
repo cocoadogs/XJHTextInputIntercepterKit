@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name             = 'XJHTextInputIntercepterKit'
-  s.version          = '0.1.8'
+  s.version          = '0.1.9'
   s.summary          = 'XJHTextInputIntercepterKit is a input intercepter that you can custom it.'
 
 # This description is used to generate tags and improve search results.
